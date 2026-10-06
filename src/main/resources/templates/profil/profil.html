@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{components/layout :: head('Mon profil')}"></head>
+<body>
+
+<nav th:replace="~{components/layout :: navbar}"></nav>
+
+<main class="container py-4">
+    <h1 class="h3 mb-4">Mon profil</h1>
+
+    <div th:replace="~{components/layout :: messages}"></div>
+
+    <!-- Informations non modifiables -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="text-muted small">Matricule</div>
+                    <div th:text="${utilisateur.matricule}">MAT-0001</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">Identifiant de connexion</div>
+                    <div th:text="${utilisateur.identifiant}">identifiant</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">Rôle</div>
+                    <div th:text="${utilisateur.role}">ROLE</div>
+                </div>
+            </div>
+            <div class="form-text mt-2">Ces informations sont gérées par l'entreprise et ne sont pas modifiables ici.</div>
+        </div>
+    </div>
+
+    <!-- Informations modifiables -->
+    <form th:object="${profilForm}" th:action="@{/profil}" method="post" novalidate>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="nom" class="form-label">Nom</label>
+                <input type="text" id="nom" th:field="*{nom}" class="form-control"
+                       th:classappend="${#fields.hasErrors('nom')} ? 'is-invalid'">
+                <div class="invalid-feedback" th:errors="*{nom}">Erreur</div>
+            </div>
+
+            <div class="col-md-6">
+                <label for="prenom" class="form-label">Prénom</label>
+                <input type="text" id="prenom" th:field="*{prenom}" class="form-control"
+                       th:classappend="${#fields.hasErrors('prenom')} ? 'is-invalid'">
+                <div class="invalid-feedback" th:errors="*{prenom}">Erreur</div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label d-block">Sexe</label>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" id="sexeM" th:field="*{sexe}" value="M">
+                    <label class="form-check-label" for="sexeM">Masculin</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" id="sexeF" th:field="*{sexe}" value="F">
+                    <label class="form-check-label" for="sexeF">Féminin</label>
+                </div>
+                <div class="text-danger small" th:if="${#fields.hasErrors('sexe')}" th:errors="*{sexe}">Erreur</div>
+            </div>
+
+            <div class="col-md-6">
+                <label for="dateNaissance" class="form-label">Date de naissance</label>
+                <input type="date" id="dateNaissance" th:field="*{dateNaissance}" class="form-control"
+                       th:classappend="${#fields.hasErrors('dateNaissance')} ? 'is-invalid'">
+                <div class="invalid-feedback" th:errors="*{dateNaissance}">Erreur</div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+            <a th:href="@{/profil/mot-de-passe}" class="btn btn-outline-secondary">Changer mon mot de passe</a>
+        </div>
+    </form>
+</main>
+
+<th:block th:replace="~{components/layout :: scripts}"></th:block>
+</body>
+</html>

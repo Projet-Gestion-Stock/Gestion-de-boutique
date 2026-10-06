@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{components/layout :: head('Connexion')}"></head>
+<body class="bg-light">
+
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h1 class="h4 text-center mb-4">Gestion de boutique</h1>
+
+                    <div th:if="${param.error != null and param.error[0] == 'disabled'}" class="alert alert-warning">
+                        Ce compte est désactivé. Contactez l'administrateur.
+                    </div>
+                    <div th:if="${param.error != null and param.error[0] != 'disabled'}" class="alert alert-danger">
+                        Identifiant ou mot de passe incorrect.
+                    </div>
+                    <div th:if="${param.logout}" class="alert alert-success">
+                        Vous avez été déconnecté.
+                    </div>
+                    <div th:if="${param.mdp}" class="alert alert-success">
+                        Votre mot de passe a été défini. Connectez-vous avec votre nouveau mot de passe.
+                    </div>
+
+                    <form th:action="@{/login}" method="post">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Identifiant</label>
+                            <input type="text" id="username" name="username"
+                                   class="form-control" required autofocus>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Mot de passe</label>
+                            <input type="password" id="password" name="password"
+                                   class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Se connecter</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

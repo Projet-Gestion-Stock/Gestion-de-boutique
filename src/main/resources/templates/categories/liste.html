@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{components/layout :: head('Catégories')}"></head>
+<body>
+
+<nav th:replace="~{components/layout :: navbar}"></nav>
+
+<main class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 m-0">Catégories</h1>
+        <a th:href="@{/categories/nouveau}" class="btn btn-primary">Ajouter une catégorie</a>
+    </div>
+
+    <div th:replace="~{components/layout :: messages}"></div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-dark">
+            <tr>
+                <th>Nom</th>
+                <th>Produits rattachés</th>
+                <th class="text-end">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${categories}">
+                <td th:text="${c.nom}">Boissons</td>
+                <td th:text="${c.nbProduits}">0</td>
+                <td class="text-end">
+                    <a th:href="@{/categories/{id}/modifier(id=${c.id})}"
+                       class="btn btn-sm btn-outline-primary">Renommer</a>
+
+                    <form th:if="${c.nbProduits == 0}"
+                          th:action="@{/categories/{id}/supprimer(id=${c.id})}"
+                          method="post" class="d-inline"
+                          onsubmit="return confirm('Supprimer cette catégorie ?');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                    </form>
+                    <button th:unless="${c.nbProduits == 0}" type="button" class="btn btn-sm btn-outline-secondary"
+                            disabled title="Cette catégorie contient des produits">Supprimer</button>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(categories)}">
+                <td colspan="3" class="text-center text-muted">Aucune catégorie. Créez-en une pour pouvoir ajouter des produits.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<th:block th:replace="~{components/layout :: scripts}"></th:block>
+</body>
+</html>

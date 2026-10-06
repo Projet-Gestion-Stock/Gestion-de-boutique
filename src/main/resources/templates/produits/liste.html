@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{components/layout :: head('Produits')}"></head>
+<body>
+
+<nav th:replace="~{components/layout :: navbar}"></nav>
+
+<main class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 m-0">Produits</h1>
+        <a sec:authorize="hasRole('ADMIN')" th:href="@{/produits/nouveau}" class="btn btn-primary">
+            Ajouter un produit
+        </a>
+    </div>
+
+    <div th:replace="~{components/layout :: messages}"></div>
+
+    <!-- Recherche par nom -->
+    <form th:action="@{/produits}" method="get" class="row g-2 mb-3">
+        <div class="col-sm-8 col-md-6">
+            <input type="search" name="q" th:value="${q}" class="form-control"
+                   placeholder="Rechercher un produit par nom..." aria-label="Rechercher un produit par nom">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-outline-primary">Rechercher</button>
+            <a th:if="${!#strings.isEmpty(q)}" th:href="@{/produits}" class="btn btn-outline-secondary">
+                Effacer
+            </a>
+        </div>
+    </form>
+
+    <p th:if="${!#strings.isEmpty(q)}" class="text-muted">
+        <span th:text="${#lists.size(produits)}">0</span> résultat(s) pour « <strong th:text="${q}">q</strong> »
+    </p>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-dark">
+            <tr>
+                <th>Produit</th>
+                <th>Catégorie</th>
+                <th class="text-end">Prix de vente</th>
+                <th>Stock</th>
+                <th>Péremption</th>
+                <th sec:authorize="hasRole('ADMIN')" class="text-end">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${produits}" th:classappend="${!p.actif} ? 'table-secondary text-muted'">
+                <td>
+                    <span th:text="${p.nom}">Riz 1 kg</span>
+                    <span th:unless="${p.actif}" class="badge bg-secondary ms-1">Désactivé</span>
+                </td>
+                <td th:text="${p.categorie.nom}">Catégorie</td>
+                <td class="text-end" th:text="${#numbers.formatDecimal(p.prixVente, 1, 'WHITESPACE', 2, 'COMMA')}">1 000,00</td>
+                <td>
+                    <span th:text="${p.quantiteStock}">0</span>
+                    <span th:if="${p.quantiteStock == 0}" class="badge bg-danger ms-1">Rupture</span>
+                    <span th:if="${p.quantiteStock > 0 and p.stockFaible}"
+                          class="badge bg-warning text-dark ms-1">Stock faible</span>
+                    <div class="small text-muted" th:text="'Seuil : ' + ${p.seuilAlerte}">Seuil : 5</div>
+                </td>
+                <td>
+                    <span th:if="${p.datePeremption == null}" class="text-muted">-</span>
+                    <span th:if="${p.datePeremption != null}"
+                          th:text="${#temporals.format(p.datePeremption, 'dd/MM/yyyy')}">01/01/2027</span>
+                    <span th:if="${p.perime}" class="badge bg-danger ms-1">Périmé</span>
+                    <span th:if="${p.isPeremptionProche(joursPeremption)}"
+                          class="badge bg-warning text-dark ms-1">Péremption proche</span>
+                </td>
+                <td sec:authorize="hasRole('ADMIN')" class="text-end">
+                    <a th:href="@{/produits/{id}/modifier(id=${p.id})}"
+                       class="btn btn-sm btn-outline-primary">Modifier</a>
+
+                    <form th:if="${p.actif}"
+                          th:action="@{/produits/{id}/desactiver(id=${p.id})}"
+                          method="post" class="d-inline"
+                          onsubmit="return confirm('Désactiver ce produit ? Il ne sera plus proposé à la vente.');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Désactiver</button>
+                    </form>
+                    <form th:unless="${p.actif}"
+                          th:action="@{/produits/{id}/activer(id=${p.id})}"
+                          method="post" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-success">Réactiver</button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(produits)}">
+                <td colspan="6" class="text-center text-muted">Aucun produit trouvé.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<th:block th:replace="~{components/layout :: scripts}"></th:block>
+</body>
+</html>

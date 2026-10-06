@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{components/layout :: head('Catégorie')}"></head>
+<body>
+
+<nav th:replace="~{components/layout :: navbar}"></nav>
+
+<main class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+
+            <h1 class="h3 mb-4" th:text="${edition} ? 'Renommer la catégorie' : 'Ajouter une catégorie'">Catégorie</h1>
+
+            <form th:object="${categorieForm}"
+                  th:action="${edition} ? @{/categories/{id}(id=${idCategorie})} : @{/categories}"
+                  method="post" novalidate>
+
+                <div class="mb-3">
+                    <label for="nom" class="form-label">Nom de la catégorie</label>
+                    <input type="text" id="nom" th:field="*{nom}" class="form-control"
+                           th:classappend="${#fields.hasErrors('nom')} ? 'is-invalid'" autofocus>
+                    <div class="invalid-feedback" th:errors="*{nom}">Erreur</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                <a th:href="@{/categories}" class="btn btn-outline-secondary">Annuler</a>
+            </form>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{components/layout :: scripts}"></th:block>
+</body>
+</html>

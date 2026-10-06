@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:fragment="head(titre)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${titre} + ' - Gestion de boutique'">Gestion de boutique</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.3/css/bootstrap.min.css}">
+</head>
+
+<body>
+
+<nav th:fragment="navbar" class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" th:href="@{/}">Gestion de boutique</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#menuPrincipal" aria-controls="menuPrincipal"
+                aria-expanded="false" aria-label="Afficher le menu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="menuPrincipal">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/}">Accueil</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/produits}">Produits</a>
+                </li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a class="nav-link" th:href="@{/categories}">Catégories</a>
+                </li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a class="nav-link" th:href="@{/utilisateurs}">Utilisateurs</a>
+                </li>
+            </ul>
+
+            <div class="d-flex align-items-center">
+                <span class="navbar-text me-2" sec:authentication="name">utilisateur</span>
+                <span class="badge bg-warning text-dark me-3" sec:authorize="hasRole('ADMIN')">ADMIN</span>
+                <span class="badge bg-secondary me-3" sec:authorize="hasRole('CAISSIER')">CAISSIER</span>
+
+                <a th:href="@{/profil}" class="btn btn-outline-light btn-sm me-2">Mon profil</a>
+
+                <form th:action="@{/logout}" method="post" class="d-flex m-0">
+                    <button type="submit" class="btn btn-outline-light btn-sm">Déconnexion</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Menu réduit : première connexion (aucune autre page n'est accessible) -->
+<nav th:fragment="navbarMinimal" class="navbar navbar-dark bg-dark">
+    <div class="container-fluid">
+        <span class="navbar-brand mb-0">Gestion de boutique</span>
+        <form th:action="@{/logout}" method="post" class="d-flex m-0">
+            <button type="submit" class="btn btn-outline-light btn-sm">Déconnexion</button>
+        </form>
+    </div>
+</nav>
+
+<!-- Messages "flash" affichés après une redirection -->
+<div th:fragment="messages">
+    <div th:if="${succes}" class="alert alert-success" role="alert" th:text="${succes}"></div>
+    <div th:if="${erreur}" class="alert alert-danger" role="alert" th:text="${erreur}"></div>
+</div>
+
+<th:block th:fragment="scripts">
+    <script th:src="@{/webjars/bootstrap/5.3.3/js/bootstrap.bundle.min.js}"></script>
+</th:block>
+
+</body>
+</html>
