@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{components/layout :: head('Livraison')}"></head>
+<body>
+
+<nav th:replace="~{components/layout :: navbar}"></nav>
+
+<main class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 m-0">Livraison n° <span th:text="${livraison.id}">1</span></h1>
+        <a th:href="@{/livraisons}" class="btn btn-outline-secondary">Retour à l'historique</a>
+    </div>
+
+    <div th:replace="~{components/layout :: messages}"></div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="text-muted small">Date</div>
+                    <div th:text="${#temporals.format(livraison.dateLivraison, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">Grossiste</div>
+                    <div th:text="${livraison.grossiste.nom}">Grossiste</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">Enregistrée par</div>
+                    <div th:text="${livraison.utilisateur.nomComplet}">Prénom Nom</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead class="table-dark">
+            <tr>
+                <th>Produit</th>
+                <th class="text-end">Quantité</th>
+                <th class="text-end">Prix d'achat</th>
+                <th class="text-end">Sous-total</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="ligne : ${livraison.lignes}">
+                <td th:text="${ligne.produit.nom}">Produit</td>
+                <td class="text-end" th:text="${ligne.quantite}">0</td>
+                <td class="text-end"
+                    th:text="${#numbers.formatDecimal(ligne.prixAchat, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
+                <td class="text-end"
+                    th:text="${#numbers.formatDecimal(ligne.sousTotal, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
+            </tr>
+            </tbody>
+            <tfoot>
+            <tr class="fw-bold">
+                <td colspan="3" class="text-end">Total</td>
+                <td class="text-end"
+                    th:text="${#numbers.formatDecimal(livraison.total, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+</main>
+
+<th:block th:replace="~{components/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{components/layout :: head('Livraisons')}"></head>
+<body>
+
+<nav th:replace="~{components/layout :: navbar}"></nav>
+
+<main class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 m-0">Livraisons des grossistes</h1>
+        <a th:href="@{/livraisons/nouvelle}" class="btn btn-primary">Enregistrer une livraison</a>
+    </div>
+
+    <div th:replace="~{components/layout :: messages}"></div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-dark">
+            <tr>
+                <th>N°</th>
+                <th>Date</th>
+                <th>Grossiste</th>
+                <th>Enregistrée par</th>
+                <th class="text-center">Produits</th>
+                <th class="text-end">Total (coût d'achat)</th>
+                <th class="text-end">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="l : ${livraisons}">
+                <td th:text="${l.id}">1</td>
+                <td th:text="${#temporals.format(l.dateLivraison, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
+                <td th:text="${l.grossiste.nom}">Grossiste</td>
+                <td th:text="${l.utilisateur.nomComplet}">Prénom Nom</td>
+                <td class="text-center" th:text="${#lists.size(l.lignes)}">0</td>
+                <td class="text-end"
+                    th:text="${#numbers.formatDecimal(l.total, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
+                <td class="text-end">
+                    <a th:href="@{/livraisons/{id}(id=${l.id})}" class="btn btn-sm btn-outline-primary">Détail</a>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(livraisons)}">
+                <td colspan="7" class="text-center text-muted">Aucune livraison enregistrée.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<th:block th:replace="~{components/layout :: scripts}"></th:block>
+</body>
+</html>

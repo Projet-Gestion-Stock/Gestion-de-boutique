@@ -32,6 +32,12 @@
                     <a class="nav-link" th:href="@{/categories}">Catégories</a>
                 </li>
                 <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a class="nav-link" th:href="@{/grossistes}">Grossistes</a>
+                </li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a class="nav-link" th:href="@{/livraisons}">Livraisons</a>
+                </li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
                     <a class="nav-link" th:href="@{/utilisateurs}">Utilisateurs</a>
                 </li>
             </ul>

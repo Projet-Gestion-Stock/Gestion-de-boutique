@@ -30,6 +30,9 @@ public class SecurityConfig {
                         // Utilisateurs : administrateur uniquement
                         .requestMatchers("/utilisateurs/**").hasRole("ADMIN")
 
+                        // Grossistes et livraisons : administrateur uniquement
+                        .requestMatchers("/grossistes/**", "/livraisons/**").hasRole("ADMIN")
+
                         // Produits : l'ORDRE compte (la première règle qui correspond s'applique)
                         // 1) formulaires d'ajout et de modification : ADMIN
                         .requestMatchers("/produits/nouveau", "/produits/*/modifier").hasRole("ADMIN")
