@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{components/layout :: head('Nouvel achat')}"></head>
+<body>
+
+<nav th:replace="~{components/layout :: navbar}"></nav>
+
+<main class="container py-4">
+    <h1 class="h3 mb-4">Nouvel achat</h1>
+
+    <form th:object="${achatForm}" th:action="@{/achats}" method="post" novalidate>
+
+        <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger">
+            <div th:each="err : ${#fields.globalErrors()}" th:text="${err}">Erreur</div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label for="nomClient" class="form-label">Nom du client (facultatif)</label>
+                <input type="text" id="nomClient" th:field="*{nomClient}" class="form-control"
+                       th:classappend="${#fields.hasErrors('nomClient')} ? 'is-invalid'">
+                <div class="invalid-feedback" th:errors="*{nomClient}">Erreur</div>
+            </div>
+        </div>
+
+        <h2 class="h5">Panier</h2>
+        <div th:if="${#fields.hasErrors('lignes')}" class="text-danger small mb-2" th:errors="*{lignes}">Erreur</div>
+
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                <tr>
+                    <th style="width: 38%">Produit</th>
+                    <th class="text-end" style="width: 14%">Prix unitaire</th>
+                    <th style="width: 18%">Quantité</th>
+                    <th class="text-end" style="width: 16%">Sous-total</th>
+                    <th style="width: 10%"></th>
+                </tr>
+                </thead>
+                <tbody id="lignes">
+                <tr th:each="l, st : *{lignes}" class="ligne">
+                    <td>
+                        <select th:field="*{lignes[__${st.index}__].produitId}" class="form-select"
+                                aria-label="Produit"
+                                th:classappend="${#fields.hasErrors('lignes[__${st.index}__].produitId')} ? 'is-invalid'">
+                            <option value="">-- Choisir un produit --</option>
+                            <option th:each="p : ${produits}" th:value="${p.id}"
+                                    th:attr="data-prix=${p.prixVente}, data-stock=${p.quantiteStock}"
+                                    th:disabled="${p.quantiteStock == 0}"
+                                    th:text="${p.quantiteStock == 0} ? ${p.nom + ' (rupture)'} : ${p.nom + ' (stock : ' + p.quantiteStock + ')'}">Produit</option>
+                        </select>
+                        <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].produitId}">Erreur</div>
+                    </td>
+                    <td class="text-end prix">-</td>
+                    <td>
+                        <input type="number" min="1" step="1" th:field="*{lignes[__${st.index}__].quantite}"
+                               class="form-control" aria-label="Quantité"
+                               th:classappend="${#fields.hasErrors('lignes[__${st.index}__].quantite')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].quantite}">Erreur</div>
+                        <div class="small text-danger alerte-stock d-none"></div>
+                    </td>
+                    <td class="text-end sous-total">0,00</td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-retirer">Retirer</button>
+                    </td>
+                </tr>
+                </tbody>
+                <tfoot>
+                <tr class="fw-bold fs-5">
+                    <td colspan="3" class="text-end">Total</td>
+                    <td class="text-end" id="total">0,00</td>
+                    <td></td>
+                </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Modèle d'une ligne vide (inerte : copié par le script, jamais envoyé) -->
+        <template id="modeleLigne">
+            <tr class="ligne">
+                <td>
+                    <select name="lignes[__INDEX__].produitId" class="form-select" aria-label="Produit">
+                        <option value="">-- Choisir un produit --</option>
+                        <option th:each="p : ${produits}" th:value="${p.id}"
+                                th:attr="data-prix=${p.prixVente}, data-stock=${p.quantiteStock}"
+                                th:disabled="${p.quantiteStock == 0}"
+                                th:text="${p.quantiteStock == 0} ? ${p.nom + ' (rupture)'} : ${p.nom + ' (stock : ' + p.quantiteStock + ')'}">Produit</option>
+                    </select>
+                </td>
+                <td class="text-end prix">-</td>
+                <td>
+                    <input type="number" min="1" step="1" name="lignes[__INDEX__].quantite" value="1"
+                           class="form-control" aria-label="Quantité">
+                    <div class="small text-danger alerte-stock d-none"></div>
+                </td>
+                <td class="text-end sous-total">0,00</td>
+                <td class="text-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-retirer">Retirer</button>
+                </td>
+            </tr>
+        </template>
+
+        <button type="button" id="ajouterLigne" class="btn btn-outline-primary mb-4">+ Ajouter un produit</button>
+
+        <div>
+            <button type="submit" class="btn btn-primary">Valider l'achat</button>
+            <a th:href="@{/achats}" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+    </form>
+</main>
+
+<th:block th:replace="~{components/layout :: scripts}"></th:block>
+
+<script>
+    (function () {
+        var corps = document.getElementById('lignes');
+        var modele = document.getElementById('modeleLigne');
+
+        function formater(nombre) {
+            return nombre.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // Prix unitaire, sous-totaux, total et avertissement de stock (aide à la saisie : le serveur fait foi)
+        function recalculer() {
+            var total = 0;
+            corps.querySelectorAll('tr.ligne').forEach(function (tr) {
+                var select = tr.querySelector('select');
+                var option = select.options[select.selectedIndex];
+                var choisi = !!option && option.value !== '';
+                var prix = choisi ? parseFloat(option.dataset.prix) : 0;
+                var stock = choisi ? parseInt(option.dataset.stock, 10) : 0;
+                var quantite = parseInt(tr.querySelector('input').value, 10) || 0;
+                var sousTotal = prix * quantite;
+
+                tr.querySelector('.prix').textContent = choisi ? formater(prix) : '-';
+                tr.querySelector('.sous-total').textContent = formater(sousTotal);
+
+                var alerte = tr.querySelector('.alerte-stock');
+                var depasse = choisi && quantite > stock;
+                alerte.textContent = depasse ? 'Stock disponible : ' + stock : '';
+                alerte.classList.toggle('d-none', !depasse);
+
+                total += sousTotal;
+            });
+            document.getElementById('total').textContent = formater(total);
+        }
+
+        // Renumérote lignes[0], lignes[1]... sans trou après un retrait
+        function renumeroter() {
+            corps.querySelectorAll('tr.ligne').forEach(function (tr, i) {
+                tr.querySelectorAll('select, input').forEach(function (champ) {
+                    champ.name = champ.name.replace(/lignes\[\d+\]/, 'lignes[' + i + ']');
+                });
+            });
+        }
+
+        document.getElementById('ajouterLigne').addEventListener('click', function () {
+            var index = corps.querySelectorAll('tr.ligne').length;
+            corps.insertAdjacentHTML('beforeend', modele.innerHTML.replace(/__INDEX__/g, index));
+            corps.lastElementChild.querySelector('select').focus();
+            recalculer();
+        });
+
+        corps.addEventListener('click', function (e) {
+            var bouton = e.target.closest('.btn-retirer');
+            if (!bouton) { return; }
+            bouton.closest('tr.ligne').remove();
+            renumeroter();
+            recalculer();
+        });
+
+        corps.addEventListener('input', recalculer);
+        corps.addEventListener('change', recalculer);
+
+        recalculer();
+    })();
+</script>
+</body>
+</html>

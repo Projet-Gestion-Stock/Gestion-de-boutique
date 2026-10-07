@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="'Ticket n° ' + ${achat.id}">Ticket</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.3/css/bootstrap.min.css}">
+    <style>
+        body { background: #e9ecef; }
+
+        .ticket {
+            width: 80mm;
+            margin: 0 auto 2rem auto;
+            padding: 6mm 4mm;
+            background: #fff;
+            color: #000;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 12px;
+            line-height: 1.35;
+            box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
+        }
+        .ticket h1 { font-size: 16px; font-weight: bold; text-align: center; margin: 0 0 2px 0; }
+        .ticket .centre { text-align: center; }
+        .ticket .droite { text-align: right; white-space: nowrap; }
+        .ticket hr { border: 0; border-top: 1px dashed #000; opacity: 1; margin: 6px 0; }
+        .ticket table { width: 100%; border-collapse: collapse; }
+        .ticket td { padding: 1px 0; vertical-align: top; }
+        .ticket .total { font-size: 15px; font-weight: bold; }
+
+        @media print {
+            @page { size: 80mm auto; margin: 0; }
+            body { background: #fff; }
+            .no-print { display: none !important; }
+            .ticket { width: 100%; margin: 0; padding: 4mm; box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Boutons : visibles à l'écran, absents de l'impression -->
+<div class="no-print text-center my-3">
+    <button type="button" class="btn btn-primary" onclick="window.print()">Imprimer</button>
+    <a th:href="@{/achats/{id}(id=${achat.id})}" class="btn btn-outline-secondary">Retour à l'achat</a>
+    <a th:href="@{/achats/nouveau}" class="btn btn-outline-secondary">Nouvel achat</a>
+    <div class="small text-muted mt-2">
+        Astuce : dans la fenêtre d'impression, désactivez « En-têtes et pieds de page » pour un ticket propre.
+    </div>
+</div>
+
+<div class="ticket">
+
+    <!-- En-tête de la boutique -->
+    <h1 th:text="${boutiqueNom}">Boutique</h1>
+    <div class="centre" th:if="${!#strings.isEmpty(boutiqueAdresse)}" th:text="${boutiqueAdresse}">Adresse</div>
+    <div class="centre" th:if="${!#strings.isEmpty(boutiqueTelephone)}" th:text="'Tél : ' + ${boutiqueTelephone}">Tél</div>
+
+    <hr>
+
+    <!-- Informations de l'achat -->
+    <div>Ticket n° <span th:text="${#numbers.formatInteger(achat.id, 6)}">000001</span></div>
+    <div th:text="'Date : ' + ${#temporals.format(achat.dateAchat, 'dd/MM/yyyy HH:mm')}">Date</div>
+    <div th:text="'Caissier : ' + ${achat.utilisateur.nomComplet}">Caissier</div>
+    <div th:if="${achat.nomClient != null}" th:text="'Client : ' + ${achat.nomClient}">Client</div>
+
+    <hr>
+
+    <!-- Lignes : désignation, puis quantité x prix unitaire et montant -->
+    <table>
+        <tbody>
+        <th:block th:each="ligne : ${achat.lignes}">
+            <tr>
+                <td colspan="2" th:text="${ligne.produit.nom}">Produit</td>
+            </tr>
+            <tr>
+                <td th:text="'  ' + ${ligne.quantite} + ' x ' + ${#numbers.formatDecimal(ligne.prixUnitaire, 1, 'WHITESPACE', 2, 'COMMA')}">2 x 1 000,00</td>
+                <td class="droite" th:text="${#numbers.formatDecimal(ligne.sousTotal, 1, 'WHITESPACE', 2, 'COMMA')}">2 000,00</td>
+            </tr>
+        </th:block>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <!-- Totaux -->
+    <table>
+        <tbody>
+        <tr>
+            <td>Articles</td>
+            <td class="droite" th:text="${achat.nombreArticles}">0</td>
+        </tr>
+        <tr class="total">
+            <td>TOTAL</td>
+            <td class="droite"
+                th:text="${#numbers.formatDecimal(achat.total, 1, 'WHITESPACE', 2, 'COMMA')} + ' ' + ${boutiqueDevise}">0,00</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <div class="centre">Merci de votre visite !</div>
+</div>
+
+</body>
+</html>

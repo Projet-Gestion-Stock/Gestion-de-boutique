@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 @Entity
 @Table(name = "produit")
@@ -55,5 +56,10 @@ public class Produit {
         return datePeremption != null
                 && !isPerime()
                 && !datePeremption.isAfter(LocalDate.now().plusDays(jours));
+    }
+
+    /** Nombre de jours avant la péremption (négatif si déjà périmé), ou null s'il n'y a pas de date. */
+    public Long getJoursAvantPeremption() {
+        return datePeremption == null ? null : ChronoUnit.DAYS.between(LocalDate.now(), datePeremption);
     }
 }

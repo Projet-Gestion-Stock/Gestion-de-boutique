@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{components/layout :: head('Achat')}"></head>
+<body>
+
+<nav th:replace="~{components/layout :: navbar}"></nav>
+
+<main class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 m-0">Achat n° <span th:text="${achat.id}">1</span></h1>
+        <div>
+            <a th:href="@{/achats/{id}/ticket(id=${achat.id})}" target="_blank" rel="noopener"
+               class="btn btn-success">Imprimer le ticket</a>
+            <a th:href="@{/achats/nouveau}" class="btn btn-primary">Nouvel achat</a>
+            <a th:href="@{/achats}" class="btn btn-outline-secondary">Retour à l'historique</a>
+        </div>
+    </div>
+
+    <div th:replace="~{components/layout :: messages}"></div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="text-muted small">Date</div>
+                    <div th:text="${#temporals.format(achat.dateAchat, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">Caissier</div>
+                    <div th:text="${achat.utilisateur.nomComplet}">Prénom Nom</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">Client</div>
+                    <div th:text="${achat.nomClient != null} ? ${achat.nomClient} : '-'">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead class="table-dark">
+            <tr>
+                <th>Produit</th>
+                <th class="text-end">Quantité</th>
+                <th class="text-end">Prix unitaire</th>
+                <th class="text-end">Sous-total</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="ligne : ${achat.lignes}">
+                <td th:text="${ligne.produit.nom}">Produit</td>
+                <td class="text-end" th:text="${ligne.quantite}">0</td>
+                <td class="text-end"
+                    th:text="${#numbers.formatDecimal(ligne.prixUnitaire, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
+                <td class="text-end"
+                    th:text="${#numbers.formatDecimal(ligne.sousTotal, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
+            </tr>
+            </tbody>
+            <tfoot>
+            <tr class="fw-bold">
+                <td colspan="3" class="text-end">Total</td>
+                <td class="text-end"
+                    th:text="${#numbers.formatDecimal(achat.total, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+</main>
+
+<th:block th:replace="~{components/layout :: scripts}"></th:block>
+</body>
+</html>

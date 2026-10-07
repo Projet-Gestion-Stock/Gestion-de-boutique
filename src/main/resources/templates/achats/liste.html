@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{components/layout :: head('Achats')}"></head>
+<body>
+
+<nav th:replace="~{components/layout :: navbar}"></nav>
+
+<main class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 m-0">Historique des achats</h1>
+        <a th:href="@{/achats/nouveau}" class="btn btn-primary">Nouvel achat</a>
+    </div>
+
+    <div th:replace="~{components/layout :: messages}"></div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-dark">
+            <tr>
+                <th>N°</th>
+                <th>Date</th>
+                <th>Caissier</th>
+                <th>Client</th>
+                <th class="text-center">Produits</th>
+                <th class="text-end">Total</th>
+                <th class="text-end">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="a : ${achats}">
+                <td th:text="${a.id}">1</td>
+                <td th:text="${#temporals.format(a.dateAchat, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
+                <td th:text="${a.utilisateur.nomComplet}">Prénom Nom</td>
+                <td th:text="${a.nomClient != null} ? ${a.nomClient} : '-'">-</td>
+                <td class="text-center" th:text="${#lists.size(a.lignes)}">0</td>
+                <td class="text-end"
+                    th:text="${#numbers.formatDecimal(a.total, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
+                <td class="text-end">
+                    <a th:href="@{/achats/{id}(id=${a.id})}" class="btn btn-sm btn-outline-primary">Détail</a>
+                    <a th:href="@{/achats/{id}/ticket(id=${a.id})}" target="_blank" rel="noopener"
+                       class="btn btn-sm btn-outline-success">Ticket</a>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(achats)}">
+                <td colspan="7" class="text-center text-muted">Aucun achat enregistré.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<th:block th:replace="~{components/layout :: scripts}"></th:block>
+</body>
+</html>
