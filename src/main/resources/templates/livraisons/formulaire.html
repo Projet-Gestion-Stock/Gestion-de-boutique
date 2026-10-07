@@ -40,18 +40,24 @@
                     <th style="width: 10%"></th>
                 </tr>
                 </thead>
-                <tbody id="lignes">
+                <tbody id="lignes" th:attr="data-defaut=@{/images/logo-defaut.jpg}">
                 <tr th:each="l, st : *{lignes}" class="ligne">
                     <td>
-                        <input type="hidden" th:field="*{lignes[__${st.index}__].produitId}" class="produit-id">
-                        <input type="text" class="form-control produit-saisie"
-                               placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit"
-                               th:classappend="${#fields.hasErrors('lignes[__${st.index}__].produitId')} ? 'is-invalid'">
-                        <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].produitId}">Erreur</div>
+                        <div class="d-flex align-items-start gap-2">
+                            <img class="miniature rounded border d-none" alt=""
+                                 style="width:44px;height:44px;object-fit:cover;flex:none;">
+                            <div class="flex-grow-1">
+                                <input type="hidden" th:field="*{lignes[__${st.index}__].produitId}" class="produit-id">
+                                <input type="text" class="form-control produit-saisie"
+                                       placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit"
+                                       th:classappend="${#fields.hasErrors('lignes[__${st.index}__].produitId')} ? 'is-invalid'">
+                                <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].produitId}">Erreur</div>
+                            </div>
+                        </div>
                     </td>
                     <td>
                         <input type="number" min="1" step="1" th:field="*{lignes[__${st.index}__].quantite}"
-                               class="form-control" aria-label="Quantité"
+                               class="form-control quantite" aria-label="Quantité"
                                th:classappend="${#fields.hasErrors('lignes[__${st.index}__].quantite')} ? 'is-invalid'">
                         <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].quantite}">Erreur</div>
                     </td>
@@ -72,24 +78,31 @@
         <!-- Catalogue des produits (lu par le script, jamais affiché) -->
         <div id="catalogue" hidden>
             <span th:each="p : ${produits}"
-                  th:data-id="${p.id}" th:data-nom="${p.nom}" th:data-stock="${p.quantiteStock}"></span>
+                  th:data-id="${p.id}" th:data-nom="${p.nom}" th:data-stock="${p.quantiteStock}"
+                  th:data-image="@{${p.imageUrl}}"></span>
         </div>
 
         <!-- Liste de suggestions, partagée par toutes les lignes -->
         <div id="suggestions" class="list-group shadow"
-             style="display:none; position:fixed; z-index:1055; max-height:260px; overflow-y:auto;"></div>
+             style="display:none; position:fixed; z-index:1055; max-height:300px; overflow-y:auto;"></div>
 
         <!-- Modèle d'une ligne vide (inerte : copié par le script, jamais envoyé) -->
         <template id="modeleLigne">
             <tr class="ligne">
                 <td>
-                    <input type="hidden" name="lignes[__INDEX__].produitId" class="produit-id">
-                    <input type="text" class="form-control produit-saisie"
-                           placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit">
+                    <div class="d-flex align-items-start gap-2">
+                        <img class="miniature rounded border d-none" alt=""
+                             style="width:44px;height:44px;object-fit:cover;flex:none;">
+                        <div class="flex-grow-1">
+                            <input type="hidden" name="lignes[__INDEX__].produitId" class="produit-id">
+                            <input type="text" class="form-control produit-saisie"
+                                   placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit">
+                        </div>
+                    </div>
                 </td>
                 <td>
                     <input type="number" min="1" step="1" name="lignes[__INDEX__].quantite" value="1"
-                           class="form-control" aria-label="Quantité">
+                           class="form-control quantite" aria-label="Quantité">
                 </td>
                 <td>
                     <input type="number" min="0" step="0.01" name="lignes[__INDEX__].prixAchat"
@@ -117,10 +130,20 @@
         var corps = document.getElementById('lignes');
         var modele = document.getElementById('modeleLigne');
         var boite = document.getElementById('suggestions');
+        var imageParDefaut = corps.dataset.defaut;
 
         var catalogue = Array.prototype.map.call(
             document.querySelectorAll('#catalogue span'),
-            function (s) { return { id: s.dataset.id, nom: s.dataset.nom, stock: s.dataset.stock }; });
+            function (s) {
+                return {
+                    id: s.dataset.id,
+                    nom: s.dataset.nom,
+                    stock: parseInt(s.dataset.stock, 10),
+                    image: s.dataset.image
+                };
+            });
+        var parId = {};
+        catalogue.forEach(function (p) { parId[p.id] = p; });
 
         var champActif = null;   // champ de saisie qui a le focus
         var resultats = [];      // suggestions affichées
@@ -133,6 +156,24 @@
                     champ.name = champ.name.replace(/lignes\[\d+\]/, 'lignes[' + i + ']');
                 });
             });
+        }
+
+        // Miniature du produit choisi sur la ligne (masquée tant qu'aucun produit n'est choisi)
+        function majMiniature(tr) {
+            var p = parId[tr.querySelector('.produit-id').value];
+            var miniature = tr.querySelector('.miniature');
+            if (p && p.image) {
+                if (miniature.getAttribute('src') !== p.image) {
+                    miniature.onerror = function () {
+                        miniature.onerror = null;
+                        miniature.src = imageParDefaut; // fichier introuvable : image par défaut
+                    };
+                    miniature.src = p.image;
+                }
+                miniature.classList.remove('d-none');
+            } else {
+                miniature.classList.add('d-none');
+            }
         }
 
         // Produits dont le nom commence par le texte, puis ceux qui le contiennent
@@ -152,7 +193,36 @@
             var r = champActif.getBoundingClientRect();
             boite.style.left = r.left + 'px';
             boite.style.top = r.bottom + 'px';
-            boite.style.width = r.width + 'px';
+            boite.style.width = Math.max(r.width, 320) + 'px';
+        }
+
+        // Une suggestion : miniature, nom et stock actuel (« rupture » à 0, mais toujours sélectionnable)
+        function creerItem(p, index) {
+            var item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action d-flex align-items-center gap-2';
+            item.dataset.index = index;
+
+            var img = document.createElement('img');
+            img.alt = '';
+            img.loading = 'lazy';
+            img.className = 'rounded border';
+            img.style.cssText = 'width:28px;height:28px;object-fit:cover;flex:none;';
+            img.onerror = function () { img.onerror = null; img.src = imageParDefaut; };
+            img.src = p.image;
+
+            var nom = document.createElement('span');
+            nom.className = 'flex-grow-1 text-start';
+            nom.textContent = p.nom;
+
+            var stock = document.createElement('small');
+            stock.className = p.stock === 0 ? 'text-danger text-nowrap' : 'text-muted text-nowrap';
+            stock.textContent = p.stock === 0 ? 'rupture' : 'stock : ' + p.stock;
+
+            item.appendChild(img);
+            item.appendChild(nom);
+            item.appendChild(stock);
+            return item;
         }
 
         function afficher(champ) {
@@ -167,20 +237,8 @@
                 vide.textContent = 'Aucun produit trouvé';
                 boite.appendChild(vide);
             }
-            resultats.forEach(function (p, i) {
-                var item = document.createElement('button');
-                item.type = 'button';
-                item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
-                item.dataset.index = i;
-                var nom = document.createElement('span');
-                nom.textContent = p.nom;
-                var stock = document.createElement('small');
-                stock.className = 'text-muted';
-                stock.textContent = 'stock : ' + p.stock;
-                item.appendChild(nom);
-                item.appendChild(stock);
-                boite.appendChild(item);
-            });
+            resultats.forEach(function (p, i) { boite.appendChild(creerItem(p, i)); });
+
             positionner();
             boite.style.display = 'block';
         }
@@ -200,10 +258,15 @@
         }
 
         function choisir(p) {
+            var tr = champActif.closest('tr.ligne');
             champActif.value = p.nom;
-            champActif.closest('td').querySelector('.produit-id').value = p.id;
+            tr.querySelector('.produit-id').value = p.id;
             champActif.classList.remove('is-invalid');
             fermer();
+            majMiniature(tr);
+            var quantite = tr.querySelector('.quantite');
+            quantite.focus();
+            quantite.select();
         }
 
         // Met l'id du produit dans le champ caché si le texte correspond exactement à un nom
@@ -211,7 +274,9 @@
             var t = champ.value.trim().toLowerCase();
             var trouve = null;
             catalogue.forEach(function (p) { if (p.nom.toLowerCase() === t) { trouve = p; } });
-            champ.closest('td').querySelector('.produit-id').value = trouve ? trouve.id : '';
+            var tr = champ.closest('tr.ligne');
+            tr.querySelector('.produit-id').value = trouve ? trouve.id : '';
+            majMiniature(tr);
             return trouve;
         }
 
@@ -279,13 +344,11 @@
             renumeroter();
         });
 
-        // Après une erreur de validation, réaffiche le nom du produit déjà choisi
+        // Après une erreur de validation, réaffiche le nom et la miniature du produit déjà choisi
         corps.querySelectorAll('tr.ligne').forEach(function (tr) {
-            var id = tr.querySelector('.produit-id').value;
-            if (!id) { return; }
-            catalogue.forEach(function (p) {
-                if (p.id === id) { tr.querySelector('.produit-saisie').value = p.nom; }
-            });
+            var p = parId[tr.querySelector('.produit-id').value];
+            if (p) { tr.querySelector('.produit-saisie').value = p.nom; }
+            majMiniature(tr);
         });
     })();
 </script>

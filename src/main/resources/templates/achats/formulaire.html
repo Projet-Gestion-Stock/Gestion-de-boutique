@@ -38,24 +38,25 @@
                     <th style="width: 10%"></th>
                 </tr>
                 </thead>
-                <tbody id="lignes">
+                <tbody id="lignes" th:attr="data-defaut=@{/images/logo-defaut.jpg}">
                 <tr th:each="l, st : *{lignes}" class="ligne">
                     <td>
-                        <select th:field="*{lignes[__${st.index}__].produitId}" class="form-select"
-                                aria-label="Produit"
-                                th:classappend="${#fields.hasErrors('lignes[__${st.index}__].produitId')} ? 'is-invalid'">
-                            <option value="">-- Choisir un produit --</option>
-                            <option th:each="p : ${produits}" th:value="${p.id}"
-                                    th:attr="data-prix=${p.prixVente}, data-stock=${p.quantiteStock}"
-                                    th:disabled="${p.quantiteStock == 0}"
-                                    th:text="${p.quantiteStock == 0} ? ${p.nom + ' (rupture)'} : ${p.nom + ' (stock : ' + p.quantiteStock + ')'}">Produit</option>
-                        </select>
-                        <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].produitId}">Erreur</div>
+                        <div class="d-flex align-items-start gap-2">
+                            <img class="miniature rounded border d-none" alt=""
+                                 style="width:44px;height:44px;object-fit:cover;flex:none;">
+                            <div class="flex-grow-1">
+                                <input type="hidden" th:field="*{lignes[__${st.index}__].produitId}" class="produit-id">
+                                <input type="text" class="form-control produit-saisie"
+                                       placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit"
+                                       th:classappend="${#fields.hasErrors('lignes[__${st.index}__].produitId')} ? 'is-invalid'">
+                                <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].produitId}">Erreur</div>
+                            </div>
+                        </div>
                     </td>
                     <td class="text-end prix">-</td>
                     <td>
                         <input type="number" min="1" step="1" th:field="*{lignes[__${st.index}__].quantite}"
-                               class="form-control" aria-label="Quantité"
+                               class="form-control quantite" aria-label="Quantité"
                                th:classappend="${#fields.hasErrors('lignes[__${st.index}__].quantite')} ? 'is-invalid'">
                         <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].quantite}">Erreur</div>
                         <div class="small text-danger alerte-stock d-none"></div>
@@ -76,22 +77,35 @@
             </table>
         </div>
 
+        <!-- Catalogue des produits (lu par le script, jamais affiché) -->
+        <div id="catalogue" hidden>
+            <span th:each="p : ${produits}"
+                  th:data-id="${p.id}" th:data-nom="${p.nom}" th:data-prix="${p.prixVente}"
+                  th:data-stock="${p.quantiteStock}" th:data-image="@{${p.imageUrl}}"></span>
+        </div>
+
+        <!-- Liste de suggestions, partagée par toutes les lignes -->
+        <div id="suggestions" class="list-group shadow"
+             style="display:none; position:fixed; z-index:1055; max-height:300px; overflow-y:auto;"></div>
+
         <!-- Modèle d'une ligne vide (inerte : copié par le script, jamais envoyé) -->
         <template id="modeleLigne">
             <tr class="ligne">
                 <td>
-                    <select name="lignes[__INDEX__].produitId" class="form-select" aria-label="Produit">
-                        <option value="">-- Choisir un produit --</option>
-                        <option th:each="p : ${produits}" th:value="${p.id}"
-                                th:attr="data-prix=${p.prixVente}, data-stock=${p.quantiteStock}"
-                                th:disabled="${p.quantiteStock == 0}"
-                                th:text="${p.quantiteStock == 0} ? ${p.nom + ' (rupture)'} : ${p.nom + ' (stock : ' + p.quantiteStock + ')'}">Produit</option>
-                    </select>
+                    <div class="d-flex align-items-start gap-2">
+                        <img class="miniature rounded border d-none" alt=""
+                             style="width:44px;height:44px;object-fit:cover;flex:none;">
+                        <div class="flex-grow-1">
+                            <input type="hidden" name="lignes[__INDEX__].produitId" class="produit-id">
+                            <input type="text" class="form-control produit-saisie"
+                                   placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit">
+                        </div>
+                    </div>
                 </td>
                 <td class="text-end prix">-</td>
                 <td>
                     <input type="number" min="1" step="1" name="lignes[__INDEX__].quantite" value="1"
-                           class="form-control" aria-label="Quantité">
+                           class="form-control quantite" aria-label="Quantité">
                     <div class="small text-danger alerte-stock d-none"></div>
                 </td>
                 <td class="text-end sous-total">0,00</td>
@@ -116,28 +130,61 @@
     (function () {
         var corps = document.getElementById('lignes');
         var modele = document.getElementById('modeleLigne');
+        var boite = document.getElementById('suggestions');
+        var imageParDefaut = corps.dataset.defaut;
+
+        var catalogue = Array.prototype.map.call(
+            document.querySelectorAll('#catalogue span'),
+            function (s) {
+                return {
+                    id: s.dataset.id,
+                    nom: s.dataset.nom,
+                    prix: parseFloat(s.dataset.prix),
+                    stock: parseInt(s.dataset.stock, 10),
+                    image: s.dataset.image
+                };
+            });
+        var parId = {};
+        catalogue.forEach(function (p) { parId[p.id] = p; });
+
+        var champActif = null;   // champ de saisie qui a le focus
+        var resultats = [];      // suggestions sélectionnables affichées
+        var indexActif = -1;     // suggestion surlignée au clavier
 
         function formater(nombre) {
             return nombre.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-        // Prix unitaire, sous-totaux, total et avertissement de stock (aide à la saisie : le serveur fait foi)
+        // Prix unitaire, sous-totaux, total, miniature et avertissement de stock (aide à la saisie : le serveur fait foi)
         function recalculer() {
             var total = 0;
             corps.querySelectorAll('tr.ligne').forEach(function (tr) {
-                var select = tr.querySelector('select');
-                var option = select.options[select.selectedIndex];
-                var choisi = !!option && option.value !== '';
-                var prix = choisi ? parseFloat(option.dataset.prix) : 0;
-                var stock = choisi ? parseInt(option.dataset.stock, 10) : 0;
-                var quantite = parseInt(tr.querySelector('input').value, 10) || 0;
+                var p = parId[tr.querySelector('.produit-id').value];
+                var prix = p ? p.prix : 0;
+                var stock = p ? p.stock : 0;
+                var quantite = parseInt(tr.querySelector('.quantite').value, 10) || 0;
                 var sousTotal = prix * quantite;
 
-                tr.querySelector('.prix').textContent = choisi ? formater(prix) : '-';
+                tr.querySelector('.prix').textContent = p ? formater(prix) : '-';
                 tr.querySelector('.sous-total').textContent = formater(sousTotal);
 
+                // Miniature du produit choisi (masquée tant qu'aucun produit n'est choisi)
+                var miniature = tr.querySelector('.miniature');
+                if (p && p.image) {
+                    if (miniature.getAttribute('src') !== p.image) {
+                        miniature.onerror = function () {
+                            miniature.onerror = null;
+                            miniature.src = imageParDefaut; // fichier introuvable : image par défaut
+                        };
+                        miniature.src = p.image;
+                    }
+                    miniature.classList.remove('d-none');
+                } else {
+                    miniature.classList.add('d-none');
+                }
+
                 var alerte = tr.querySelector('.alerte-stock');
-                var depasse = choisi && quantite > stock;
+                var depasse = !!p && quantite > stock;
                 alerte.textContent = depasse ? 'Stock disponible : ' + stock : '';
                 alerte.classList.toggle('d-none', !depasse);
 
@@ -155,10 +202,176 @@
             });
         }
 
+        // --- Recherche de produit ---
+
+        // Produits dont le nom commence par le texte, puis ceux qui le contiennent
+        function chercher(texte) {
+            var t = texte.trim().toLowerCase();
+            if (t === '') { return catalogue.slice(); }
+            var debut = [], contient = [];
+            catalogue.forEach(function (p) {
+                var pos = p.nom.toLowerCase().indexOf(t);
+                if (pos === 0) { debut.push(p); } else if (pos > 0) { contient.push(p); }
+            });
+            return debut.concat(contient);
+        }
+
+        function positionner() {
+            if (!champActif) { return; }
+            var r = champActif.getBoundingClientRect();
+            boite.style.left = r.left + 'px';
+            boite.style.top = r.bottom + 'px';
+            boite.style.width = Math.max(r.width, 320) + 'px';
+        }
+
+        // Une suggestion : miniature, nom, prix et stock. index < 0 : produit en rupture (non sélectionnable).
+        function creerItem(p, index) {
+            var rupture = index < 0;
+            var item = document.createElement(rupture ? 'div' : 'button');
+            item.className = 'list-group-item d-flex align-items-center gap-2'
+                + (rupture ? ' disabled text-muted' : ' list-group-item-action');
+            if (!rupture) {
+                item.type = 'button';
+                item.dataset.index = index;
+            }
+
+            var img = document.createElement('img');
+            img.alt = '';
+            img.loading = 'lazy';
+            img.className = 'rounded border';
+            img.style.cssText = 'width:28px;height:28px;object-fit:cover;flex:none;';
+            img.onerror = function () { img.onerror = null; img.src = imageParDefaut; };
+            img.src = p.image;
+
+            var nom = document.createElement('span');
+            nom.className = 'flex-grow-1 text-start';
+            nom.textContent = p.nom;
+
+            var info = document.createElement('small');
+            info.className = 'text-muted text-nowrap';
+            info.textContent = rupture ? 'rupture' : formater(p.prix) + ' · stock : ' + p.stock;
+
+            item.appendChild(img);
+            item.appendChild(nom);
+            item.appendChild(info);
+            return item;
+        }
+
+        function afficher(champ) {
+            champActif = champ;
+            var trouves = chercher(champ.value);
+            resultats = trouves.filter(function (p) { return p.stock > 0; });
+            var ruptures = trouves.filter(function (p) { return p.stock <= 0; });
+            indexActif = -1;
+            boite.innerHTML = '';
+
+            if (trouves.length === 0) {
+                var vide = document.createElement('div');
+                vide.className = 'list-group-item text-muted small';
+                vide.textContent = 'Aucun produit trouvé';
+                boite.appendChild(vide);
+            }
+            resultats.forEach(function (p, i) { boite.appendChild(creerItem(p, i)); });
+            ruptures.forEach(function (p) { boite.appendChild(creerItem(p, -1)); });
+
+            positionner();
+            boite.style.display = 'block';
+        }
+
+        function fermer() {
+            boite.style.display = 'none';
+            champActif = null;
+            indexActif = -1;
+        }
+
+        function surligner(nouvelIndex) {
+            var items = boite.querySelectorAll('button[data-index]');
+            if (items.length === 0) { return; }
+            indexActif = (nouvelIndex + items.length) % items.length;
+            items.forEach(function (it, i) { it.classList.toggle('active', i === indexActif); });
+            items[indexActif].scrollIntoView({ block: 'nearest' });
+        }
+
+        function choisir(p) {
+            var tr = champActif.closest('tr.ligne');
+            champActif.value = p.nom;
+            tr.querySelector('.produit-id').value = p.id;
+            champActif.classList.remove('is-invalid');
+            fermer();
+            recalculer();
+            var quantite = tr.querySelector('.quantite');
+            quantite.focus();
+            quantite.select();
+        }
+
+        // Met l'id du produit dans le champ caché si le texte correspond exactement au nom d'un produit disponible
+        function synchroniser(champ) {
+            var t = champ.value.trim().toLowerCase();
+            var trouve = null;
+            catalogue.forEach(function (p) { if (p.stock > 0 && p.nom.toLowerCase() === t) { trouve = p; } });
+            champ.closest('tr.ligne').querySelector('.produit-id').value = trouve ? trouve.id : '';
+            return trouve;
+        }
+
+        function estSaisie(el) { return el.classList && el.classList.contains('produit-saisie'); }
+
+        // --- Événements du champ de saisie (délégués sur le tableau) ---
+        corps.addEventListener('focusin', function (e) {
+            if (estSaisie(e.target)) { afficher(e.target); }
+        });
+
+        corps.addEventListener('input', function (e) {
+            if (estSaisie(e.target)) {
+                synchroniser(e.target);
+                afficher(e.target);
+            }
+            recalculer();
+        });
+
+        corps.addEventListener('change', recalculer);
+
+        corps.addEventListener('focusout', function (e) {
+            if (!estSaisie(e.target)) { return; }
+            var trouve = synchroniser(e.target);
+            if (trouve) {
+                e.target.classList.remove('is-invalid');
+            } else if (e.target.value.trim() !== '') {
+                e.target.classList.add('is-invalid');
+            }
+            fermer();
+            recalculer();
+        });
+
+        corps.addEventListener('keydown', function (e) {
+            if (!estSaisie(e.target) || boite.style.display === 'none') { return; }
+            if (e.key === 'ArrowDown') { e.preventDefault(); surligner(indexActif + 1); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); surligner(indexActif - 1); }
+            else if (e.key === 'Escape') { fermer(); }
+            else if (e.key === 'Enter') {
+                e.preventDefault();   // évite l'envoi du formulaire
+                var p = resultats[indexActif >= 0 ? indexActif : 0];
+                if (p) { choisir(p); }
+            }
+        });
+
+        // Clic sur une suggestion : mousedown (avant la perte de focus du champ)
+        boite.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            var item = e.target.closest('button[data-index]');
+            if (item && champActif) { choisir(resultats[item.dataset.index]); }
+        });
+
+        // La liste suit le champ si la page défile ou change de taille
+        window.addEventListener('scroll', function (e) {
+            if (e.target !== boite) { positionner(); }
+        }, true);
+        window.addEventListener('resize', positionner);
+
+        // --- Lignes ---
         document.getElementById('ajouterLigne').addEventListener('click', function () {
             var index = corps.querySelectorAll('tr.ligne').length;
             corps.insertAdjacentHTML('beforeend', modele.innerHTML.replace(/__INDEX__/g, index));
-            corps.lastElementChild.querySelector('select').focus();
+            corps.lastElementChild.querySelector('.produit-saisie').focus();
             recalculer();
         });
 
@@ -166,12 +379,16 @@
             var bouton = e.target.closest('.btn-retirer');
             if (!bouton) { return; }
             bouton.closest('tr.ligne').remove();
+            fermer();
             renumeroter();
             recalculer();
         });
 
-        corps.addEventListener('input', recalculer);
-        corps.addEventListener('change', recalculer);
+        // Après une erreur de validation, réaffiche le nom du produit déjà choisi
+        corps.querySelectorAll('tr.ligne').forEach(function (tr) {
+            var p = parId[tr.querySelector('.produit-id').value];
+            if (p) { tr.querySelector('.produit-saisie').value = p.nom; }
+        });
 
         recalculer();
     })();

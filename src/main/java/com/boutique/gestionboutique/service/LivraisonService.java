@@ -12,9 +12,11 @@ import com.boutique.gestionboutique.repository.GrossisteRepository;
 import com.boutique.gestionboutique.repository.LivraisonRepository;
 import com.boutique.gestionboutique.repository.ProduitRepository;
 import com.boutique.gestionboutique.repository.UtilisateurRepository;
+import com.boutique.gestionboutique.util.Periode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -49,6 +51,17 @@ public class LivraisonService {
     public Livraison trouverDetaillee(Integer id) {
         return livraisonRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new RessourceIntrouvableException("Livraison introuvable : " + id));
+    }
+
+    /** Historique filtré : période (bornes facultatives, jours inclus) et grossiste facultatif. */
+    @Transactional(readOnly = true)
+    public List<Livraison> rechercher(LocalDate du, LocalDate au, Integer grossisteId) {
+        Periode periode = Periode.entre(du, au);
+        return grossisteId == null
+                ? livraisonRepository.findByDateLivraisonGreaterThanEqualAndDateLivraisonLessThanOrderByDateLivraisonDesc(
+                periode.debut(), periode.fin())
+                : livraisonRepository.findByDateLivraisonGreaterThanEqualAndDateLivraisonLessThanAndGrossisteIdOrderByDateLivraisonDesc(
+                periode.debut(), periode.fin(), grossisteId);
     }
 
     // ---------- Enregistrement ----------

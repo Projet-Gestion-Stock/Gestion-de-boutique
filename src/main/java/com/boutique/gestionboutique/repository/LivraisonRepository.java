@@ -4,6 +4,7 @@ import com.boutique.gestionboutique.model.Livraison;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,4 +17,16 @@ public interface LivraisonRepository extends JpaRepository<Livraison, Integer> {
     /** Une livraison avec tout son détail (grossiste, utilisateur, lignes et produits). */
     @EntityGraph(attributePaths = {"grossiste", "utilisateur", "lignes", "lignes.produit"})
     Optional<Livraison> findWithDetailsById(Integer id);
+
+    // ---------- Historique filtré ----------
+
+    /** Livraisons de la période [debut, fin[, de la plus récente à la plus ancienne. */
+    @EntityGraph(attributePaths = {"grossiste", "utilisateur", "lignes"})
+    List<Livraison> findByDateLivraisonGreaterThanEqualAndDateLivraisonLessThanOrderByDateLivraisonDesc(
+            LocalDateTime debut, LocalDateTime fin);
+
+    /** Même chose, limité aux livraisons d'un grossiste. */
+    @EntityGraph(attributePaths = {"grossiste", "utilisateur", "lignes"})
+    List<Livraison> findByDateLivraisonGreaterThanEqualAndDateLivraisonLessThanAndGrossisteIdOrderByDateLivraisonDesc(
+            LocalDateTime debut, LocalDateTime fin, Integer idGrossiste);
 }

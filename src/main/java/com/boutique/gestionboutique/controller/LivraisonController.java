@@ -17,7 +17,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,8 +46,38 @@ public class LivraisonController {
     // ---------- Historique ----------
 
     @GetMapping
-    public String liste(Model model) {
-        model.addAttribute("livraisons", livraisonService.lister());
+    public String liste(@RequestParam(name = "du", required = false)
+                        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate du,
+                        @RequestParam(name = "au", required = false)
+                        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate au,
+                        @RequestParam(name = "grossisteId", required = false) Integer grossisteId,
+                        Model model) {
+
+        List<Livraison> livraisons = List.of();
+        if (du != null && au != null && du.isAfter(au)) {
+            // Règle FI3
+            model.addAttribute("erreurFiltre",
+                    "La date de fin doit être postérieure ou égale à la date de début.");
+        } else {
+            livraisons = livraisonService.rechercher(du, au, grossisteId);
+        }
+
+        LocalDate aujourdhui = LocalDate.now();
+        model.addAttribute("livraisons", livraisons);
+        model.addAttribute("totalAffiche",
+                livraisons.stream().map(Livraison::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add));
+        model.addAttribute("grossistes", grossisteService.lister());
+
+        // Valeurs du filtre, pour réafficher le formulaire tel qu'il a été rempli
+        model.addAttribute("du", du);
+        model.addAttribute("au", au);
+        model.addAttribute("grossisteId", grossisteId);
+        model.addAttribute("filtreActif", du != null || au != null || grossisteId != null);
+
+        // Raccourcis (règle FI6)
+        model.addAttribute("aujourdhui", aujourdhui);
+        model.addAttribute("il7Jours", aujourdhui.minusDays(6));
+        model.addAttribute("debutMois", aujourdhui.withDayOfMonth(1));
         return "livraisons/liste";
     }
 

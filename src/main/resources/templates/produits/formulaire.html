@@ -16,7 +16,7 @@
 
     <form th:object="${produitForm}"
           th:action="${edition} ? @{/produits/{id}(id=${idProduit})} : @{/produits}"
-          method="post" novalidate>
+          method="post" enctype="multipart/form-data" novalidate>
 
         <div class="row g-3">
             <div class="col-md-8">
@@ -75,6 +75,31 @@
                        th:classappend="${#fields.hasErrors('datePeremption')} ? 'is-invalid'">
                 <div class="invalid-feedback" th:errors="*{datePeremption}">Erreur</div>
             </div>
+
+            <!-- Image du produit -->
+            <div class="col-12">
+                <label for="imageFichier" class="form-label">Image du produit (facultative)</label>
+                <div class="d-flex align-items-start gap-3">
+                    <img id="apercu" th:src="@{${imageUrl}}" alt="Aperçu de l'image"
+                         class="rounded border" style="width:120px;height:120px;object-fit:cover;">
+                    <div class="flex-grow-1">
+                        <input type="file" id="imageFichier" name="imageFichier" class="form-control"
+                               th:classappend="${erreurImage != null} ? 'is-invalid'"
+                               accept="image/jpeg,image/png,image/webp">
+                        <div class="invalid-feedback" th:text="${erreurImage}">Erreur</div>
+                        <div class="form-text">
+                            JPG, PNG ou WebP, 2 Mo maximum. Sans image, l'image par défaut est utilisée.
+                        </div>
+                        <div class="form-check mt-2" th:if="${edition and imagePerso}">
+                            <input class="form-check-input" type="checkbox" id="supprimerImage"
+                                   name="supprimerImage" value="true">
+                            <label class="form-check-label" for="supprimerImage">
+                                Revenir à l'image par défaut
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="mt-4">
@@ -85,5 +110,16 @@
 </main>
 
 <th:block th:replace="~{components/layout :: scripts}"></th:block>
+
+<script>
+    // Aperçu immédiat de l'image choisie (avant l'enregistrement)
+    const champImage = document.getElementById('imageFichier');
+    const apercu = document.getElementById('apercu');
+    const srcInitiale = apercu.src;
+    champImage.addEventListener('change', function () {
+        const fichier = champImage.files[0];
+        apercu.src = fichier ? URL.createObjectURL(fichier) : srcInitiale;
+    });
+</script>
 </body>
 </html>

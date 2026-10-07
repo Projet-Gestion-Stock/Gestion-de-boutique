@@ -14,6 +14,47 @@
 
     <div th:replace="~{components/layout :: messages}"></div>
 
+    <!-- Filtres -->
+    <form th:action="@{/achats}" method="get" class="card card-body mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label for="du" class="form-label small mb-1">Du</label>
+                <input type="date" id="du" name="du" th:value="${du}" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label for="au" class="form-label small mb-1">Au</label>
+                <input type="date" id="au" name="au" th:value="${au}" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label for="caissierId" class="form-label small mb-1">Caissier</label>
+                <select id="caissierId" name="caissierId" class="form-select">
+                    <option value="">Tous</option>
+                    <option th:each="u : ${caissiers}" th:value="${u.id}"
+                            th:text="${u.nomComplet + ' (' + u.identifiant + ')'}"
+                            th:selected="${caissierId != null and caissierId == u.id}">Caissier</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary">Filtrer</button>
+                <a th:if="${filtreActif}" th:href="@{/achats}" class="btn btn-outline-secondary">Réinitialiser</a>
+            </div>
+        </div>
+        <div class="mt-2 small">
+            Raccourcis :
+            <a th:href="@{/achats(du=${aujourdhui}, au=${aujourdhui})}">Aujourd'hui</a> ·
+            <a th:href="@{/achats(du=${il7Jours}, au=${aujourdhui})}">7 derniers jours</a> ·
+            <a th:href="@{/achats(du=${debutMois}, au=${aujourdhui})}">Ce mois</a>
+        </div>
+    </form>
+
+    <div th:if="${erreurFiltre}" class="alert alert-warning" th:text="${erreurFiltre}"></div>
+
+    <p class="text-muted" th:unless="${erreurFiltre}">
+        <strong th:text="${#lists.size(achats)}">0</strong> achat(s)
+        <span th:if="${filtreActif}">correspondant au filtre</span>
+        · Total : <strong th:text="${#numbers.formatDecimal(totalAffiche, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</strong>
+    </p>
+
     <div class="table-responsive">
         <table class="table table-striped table-hover align-middle">
             <thead class="table-dark">
@@ -43,7 +84,8 @@
                 </td>
             </tr>
             <tr th:if="${#lists.isEmpty(achats)}">
-                <td colspan="7" class="text-center text-muted">Aucun achat enregistré.</td>
+                <td colspan="7" class="text-center text-muted"
+                    th:text="${filtreActif} ? 'Aucun achat ne correspond à ce filtre.' : 'Aucun achat enregistré.'">Aucun achat.</td>
             </tr>
             </tbody>
         </table>

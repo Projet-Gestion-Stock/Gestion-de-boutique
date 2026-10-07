@@ -6,6 +6,11 @@ import com.boutique.gestionboutique.model.Achat;
 import com.boutique.gestionboutique.service.AchatService;
 import com.boutique.gestionboutique.service.ProduitService;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.RequestParam;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -47,8 +52,38 @@ public class AchatController {
     // ---------- Historique ----------
 
     @GetMapping
-    public String liste(Model model) {
-        model.addAttribute("achats", achatService.lister());
+    public String liste(@RequestParam(name = "du", required = false)
+                        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate du,
+                        @RequestParam(name = "au", required = false)
+                        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate au,
+                        @RequestParam(name = "caissierId", required = false) Integer caissierId,
+                        Model model) {
+
+        List<Achat> achats = List.of();
+        if (du != null && au != null && du.isAfter(au)) {
+            // Règle FI3
+            model.addAttribute("erreurFiltre",
+                    "La date de fin doit être postérieure ou égale à la date de début.");
+        } else {
+            achats = achatService.rechercher(du, au, caissierId);
+        }
+
+        LocalDate aujourdhui = LocalDate.now();
+        model.addAttribute("achats", achats);
+        model.addAttribute("totalAffiche",
+                achats.stream().map(Achat::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add));
+        model.addAttribute("caissiers", achatService.listerUtilisateurs());
+
+        // Valeurs du filtre, pour réafficher le formulaire tel qu'il a été rempli
+        model.addAttribute("du", du);
+        model.addAttribute("au", au);
+        model.addAttribute("caissierId", caissierId);
+        model.addAttribute("filtreActif", du != null || au != null || caissierId != null);
+
+        // Raccourcis (règle FI6)
+        model.addAttribute("aujourdhui", aujourdhui);
+        model.addAttribute("il7Jours", aujourdhui.minusDays(6));
+        model.addAttribute("debutMois", aujourdhui.withDayOfMonth(1));
         return "achats/liste";
     }
 

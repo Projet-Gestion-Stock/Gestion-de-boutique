@@ -4,6 +4,7 @@ import com.boutique.gestionboutique.dto.ProduitDTO;
 import com.boutique.gestionboutique.model.Produit;
 import com.boutique.gestionboutique.service.CategorieService;
 import com.boutique.gestionboutique.service.ProduitService;
+import com.boutique.gestionboutique.service.StockageImageService;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
@@ -28,10 +30,14 @@ public class ProduitController {
 
     private final ProduitService produitService;
     private final CategorieService categorieService;
+    private final StockageImageService stockageImageService;
 
-    public ProduitController(ProduitService produitService, CategorieService categorieService) {
+    public ProduitController(ProduitService produitService,
+                             CategorieService categorieService,
+                             StockageImageService stockageImageService) {
         this.produitService = produitService;
         this.categorieService = categorieService;
+        this.stockageImageService = stockageImageService;
     }
 
     // ---------- Liste et recherche (ADMIN et CAISSIER) ----------
@@ -60,14 +66,17 @@ public class ProduitController {
     @PostMapping
     public String creer(@Valid @ModelAttribute("produitForm") ProduitDTO form,
                         BindingResult result,
+                        @RequestParam(name = "imageFichier", required = false) MultipartFile imageFichier,
                         Model model,
                         RedirectAttributes redirect) {
         verifierSaisie(form, result, null);
-        if (result.hasErrors()) {
+        String erreurImage = stockageImageService.verifier(imageFichier);
+        if (result.hasErrors() || erreurImage != null) {
+            model.addAttribute("erreurImage", erreurImage);
             preparerFormulaire(model, null);
             return "produits/formulaire";
         }
-        produitService.creer(form);
+        produitService.creer(form, imageFichier);
         redirect.addFlashAttribute("succes", "Produit « " + form.nom().trim() + " » ajouté.");
         return "redirect:/produits";
     }
@@ -85,14 +94,18 @@ public class ProduitController {
     public String enregistrerModification(@PathVariable Integer id,
                                           @Valid @ModelAttribute("produitForm") ProduitDTO form,
                                           BindingResult result,
+                                          @RequestParam(name = "imageFichier", required = false) MultipartFile imageFichier,
+                                          @RequestParam(name = "supprimerImage", defaultValue = "false") boolean supprimerImage,
                                           Model model,
                                           RedirectAttributes redirect) {
         verifierSaisie(form, result, id);
-        if (result.hasErrors()) {
+        String erreurImage = stockageImageService.verifier(imageFichier);
+        if (result.hasErrors() || erreurImage != null) {
+            model.addAttribute("erreurImage", erreurImage);
             preparerFormulaire(model, id);
             return "produits/formulaire";
         }
-        produitService.modifier(id, form);
+        produitService.modifier(id, form, imageFichier, supprimerImage);
         redirect.addFlashAttribute("succes", "Produit modifié avec succès.");
         return "redirect:/produits";
     }
@@ -126,7 +139,13 @@ public class ProduitController {
         model.addAttribute("idProduit", idProduit);
         model.addAttribute("categories", categorieService.listerToutes());
         if (idProduit != null) {
-            model.addAttribute("stockActuel", produitService.stockActuel(idProduit));
+            Produit produit = produitService.trouver(idProduit);
+            model.addAttribute("stockActuel", produit.getQuantiteStock());
+            model.addAttribute("imageUrl", produit.getImageUrl());
+            model.addAttribute("imagePerso", produit.getImage() != null);
+        } else {
+            model.addAttribute("imageUrl", Produit.IMAGE_PAR_DEFAUT);
+            model.addAttribute("imagePerso", false);
         }
     }
 

@@ -38,6 +38,7 @@
         <table class="table table-hover align-middle">
             <thead class="table-dark">
             <tr>
+                <th style="width:80px"><span class="visually-hidden">Image</span></th>
                 <th>Produit</th>
                 <th>Catégorie</th>
                 <th class="text-end">Prix de vente</th>
@@ -48,6 +49,12 @@
             </thead>
             <tbody>
             <tr th:each="p : ${produits}" th:classappend="${!p.actif} ? 'table-secondary text-muted'">
+                <td>
+                    <img th:src="@{${p.imageUrl}}" alt=""
+                         th:attr="data-defaut=@{/images/logo-defaut.jpg}"
+                         onerror="this.onerror=null;this.src=this.dataset.defaut;"
+                         class="rounded border" style="width:56px;height:56px;object-fit:cover;">
+                </td>
                 <td>
                     <span th:text="${p.nom}">Riz 1 kg</span>
                     <span th:unless="${p.actif}" class="badge bg-secondary ms-1">Désactivé</span>
@@ -87,7 +94,7 @@
                 </td>
             </tr>
             <tr th:if="${#lists.isEmpty(produits)}">
-                <td colspan="6" class="text-center text-muted">Aucun produit trouvé.</td>
+                <td colspan="7" class="text-center text-muted">Aucun produit trouvé.</td>
             </tr>
             </tbody>
         </table>

@@ -26,4 +26,15 @@ public interface AchatRepository extends JpaRepository<Achat, Integer> {
     @Query("select count(a) from Achat a where a.dateAchat >= :debut and a.dateAchat < :fin")
     long compterEntre(@Param("debut") LocalDateTime debut, @Param("fin") LocalDateTime fin);
 
+    // ---------- Historique filtré ----------
+
+    /** Achats de la période [debut, fin[, du plus récent au plus ancien. */
+    @EntityGraph(attributePaths = {"utilisateur", "lignes"})
+    List<Achat> findByDateAchatGreaterThanEqualAndDateAchatLessThanOrderByDateAchatDesc(
+            LocalDateTime debut, LocalDateTime fin);
+
+    /** Même chose, limité aux achats d'un caissier. */
+    @EntityGraph(attributePaths = {"utilisateur", "lignes"})
+    List<Achat> findByDateAchatGreaterThanEqualAndDateAchatLessThanAndUtilisateurIdOrderByDateAchatDesc(
+            LocalDateTime debut, LocalDateTime fin, Integer idUtilisateur);
 }

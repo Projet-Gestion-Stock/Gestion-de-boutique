@@ -14,6 +14,12 @@ import java.time.temporal.ChronoUnit;
 @NoArgsConstructor
 public class Produit {
 
+    /** Image affichée pour un produit qui n'en a pas (static/images/logo-defaut.jpg). */
+    public static final String IMAGE_PAR_DEFAUT = "/images/logo-defaut.jpg";
+
+    /** Adresse sous laquelle les images envoyées sont servies (voir WebConfig). */
+    public static final String URL_IMAGES = "/uploads/produits/";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_produit")
@@ -61,5 +67,10 @@ public class Produit {
     /** Nombre de jours avant la péremption (négatif si déjà périmé), ou null s'il n'y a pas de date. */
     public Long getJoursAvantPeremption() {
         return datePeremption == null ? null : ChronoUnit.DAYS.between(LocalDate.now(), datePeremption);
+    }
+
+    /** Adresse de l'image à afficher : celle du produit, ou l'image par défaut. */
+    public String getImageUrl() {
+        return (image == null || image.isBlank()) ? IMAGE_PAR_DEFAUT : URL_IMAGES + image;
     }
 }

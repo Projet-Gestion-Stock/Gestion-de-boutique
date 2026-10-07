@@ -19,6 +19,17 @@
             line-height: 1.35;
             box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
         }
+
+        .ticket .logo-ticket {
+            display: block;
+            margin: 0 auto 4px auto;
+            max-width: 40mm;
+            max-height: 25mm;
+            height: auto;
+            /* Rendu net sur une imprimante thermique (noir et blanc) */
+            filter: grayscale(1) contrast(1.4);
+        }
+
         .ticket h1 { font-size: 16px; font-weight: bold; text-align: center; margin: 0 0 2px 0; }
         .ticket .centre { text-align: center; }
         .ticket .droite { text-align: right; white-space: nowrap; }
@@ -48,6 +59,11 @@
 </div>
 
 <div class="ticket">
+
+    <!-- Logo de la boutique -->
+    <div class="centre">
+        <img th:src="@{/images/logo.png}" alt="Logo" class="logo-ticket">
+    </div>
 
     <!-- En-tête de la boutique -->
     <h1 th:text="${boutiqueNom}">Boutique</h1>

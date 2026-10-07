@@ -10,9 +10,11 @@ import com.boutique.gestionboutique.model.Utilisateur;
 import com.boutique.gestionboutique.repository.AchatRepository;
 import com.boutique.gestionboutique.repository.ProduitRepository;
 import com.boutique.gestionboutique.repository.UtilisateurRepository;
+import com.boutique.gestionboutique.util.Periode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,6 +48,23 @@ public class AchatService {
     public Achat trouverDetaille(Integer id) {
         return achatRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new RessourceIntrouvableException("Achat introuvable : " + id));
+    }
+
+    /** Historique filtré : période (bornes facultatives, jours inclus) et caissier facultatif. */
+    @Transactional(readOnly = true)
+    public List<Achat> rechercher(LocalDate du, LocalDate au, Integer caissierId) {
+        Periode periode = Periode.entre(du, au);
+        return caissierId == null
+                ? achatRepository.findByDateAchatGreaterThanEqualAndDateAchatLessThanOrderByDateAchatDesc(
+                periode.debut(), periode.fin())
+                : achatRepository.findByDateAchatGreaterThanEqualAndDateAchatLessThanAndUtilisateurIdOrderByDateAchatDesc(
+                periode.debut(), periode.fin(), caissierId);
+    }
+
+    /** Utilisateurs proposés dans le filtre « caissier ». */
+    @Transactional(readOnly = true)
+    public List<Utilisateur> listerUtilisateurs() {
+        return utilisateurRepository.findAllByOrderByNomAscPrenomAsc();
     }
 
     // ---------- Enregistrement ----------

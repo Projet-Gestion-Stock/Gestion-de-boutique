@@ -8,19 +8,24 @@ import com.boutique.gestionboutique.repository.CategorieRepository;
 import com.boutique.gestionboutique.repository.ProduitRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class ProduitService {
 
     private final ProduitRepository produitRepository;
     private final CategorieRepository categorieRepository;
+    private final StockageImageService stockageImageService;
 
     public ProduitService(ProduitRepository produitRepository,
-                          CategorieRepository categorieRepository) {
+                          CategorieRepository categorieRepository,
+                          StockageImageService stockageImageService) {
         this.produitRepository = produitRepository;
         this.categorieRepository = categorieRepository;
+        this.stockageImageService = stockageImageService;
     }
 
     // ---------- Consultation ----------
@@ -77,8 +82,9 @@ public class ProduitService {
 
     // ---------- Écriture ----------
 
+    /** image = fichier envoyé (peut être null ou vide : le produit utilisera alors l'image par défaut). */
     @Transactional
-    public Produit creer(ProduitDTO form) {
+    public Produit creer(ProduitDTO form, MultipartFile image) {
         Produit p = new Produit();
         p.setNom(form.nom().trim());
         p.setPrixVente(form.prixVente());
@@ -87,19 +93,49 @@ public class ProduitService {
         p.setDatePeremption(form.datePeremption());
         p.setCategorie(trouverCategorie(form.categorieId()));
         p.setActif(true);
-        return produitRepository.save(p);
+
+        String nouvelleImage = stockageImageService.enregistrer(image);
+        p.setImage(nouvelleImage);
+        try {
+            return produitRepository.save(p);
+        } catch (RuntimeException e) {
+            stockageImageService.supprimer(nouvelleImage); // pas de fichier orphelin
+            throw e;
+        }
     }
 
-    /** Règle P6 : le stock n'est JAMAIS modifié ici (il varie par les livraisons et les achats). */
+    /**
+     * Règle P6 : le stock n'est JAMAIS modifié ici (il varie par les livraisons et les achats).
+     * Image : un nouveau fichier remplace l'ancien ; supprimerImage = true revient à l'image par défaut.
+     */
     @Transactional
-    public Produit modifier(Integer id, ProduitDTO form) {
+    public Produit modifier(Integer id, ProduitDTO form, MultipartFile image, boolean supprimerImage) {
         Produit p = trouver(id);
         p.setNom(form.nom().trim());
         p.setPrixVente(form.prixVente());
         p.setSeuilAlerte(form.seuilAlerte());
         p.setDatePeremption(form.datePeremption());
         p.setCategorie(trouverCategorie(form.categorieId()));
-        return produitRepository.save(p);
+
+        String ancienneImage = p.getImage();
+        String nouvelleImage = stockageImageService.enregistrer(image);
+        if (nouvelleImage != null) {
+            p.setImage(nouvelleImage);
+        } else if (supprimerImage) {
+            p.setImage(null);
+        }
+
+        Produit enregistre;
+        try {
+            enregistre = produitRepository.save(p);
+        } catch (RuntimeException e) {
+            stockageImageService.supprimer(nouvelleImage);
+            throw e;
+        }
+        if (!Objects.equals(ancienneImage, enregistre.getImage())) {
+            stockageImageService.supprimer(ancienneImage); // l'ancien fichier n'est plus utilisé
+        }
+        return enregistre;
     }
 
     /** Règle P7 : on désactive, on ne supprime jamais. */

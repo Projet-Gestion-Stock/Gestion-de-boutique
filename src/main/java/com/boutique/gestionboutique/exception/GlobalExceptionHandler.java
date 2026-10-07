@@ -8,6 +8,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /** Point unique de traitement des exceptions connues : elles produisent toutes la même page d'erreur. */
 @ControllerAdvice
@@ -29,6 +30,15 @@ public class GlobalExceptionHandler {
     public String handleRegleGestion(RegleGestionException ex, Model model) {
         log.warn("Règle de gestion violée : {}", ex.getMessage());
         return page(model, HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /** Fichier envoyé trop volumineux (limite : spring.servlet.multipart.max-file-size). */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public String handleFichierTropGros(MaxUploadSizeExceededException ex, Model model) {
+        log.warn("Fichier trop volumineux : {}", ex.getMessage());
+        return page(model, HttpStatus.BAD_REQUEST,
+                "Le fichier envoyé est trop volumineux (image : 2 Mo maximum). Revenez en arrière et choisissez une image plus légère.");
     }
 
     /**
