@@ -6,6 +6,7 @@ import com.boutique.gestionboutique.service.CategorieService;
 import com.boutique.gestionboutique.service.ProduitService;
 import com.boutique.gestionboutique.service.StockageImageService;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,8 +20,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.List;
-
 @Controller
 @RequestMapping("/produits")
 public class ProduitController {
@@ -31,13 +30,16 @@ public class ProduitController {
     private final ProduitService produitService;
     private final CategorieService categorieService;
     private final StockageImageService stockageImageService;
+    private final String devise;
 
     public ProduitController(ProduitService produitService,
                              CategorieService categorieService,
-                             StockageImageService stockageImageService) {
+                             StockageImageService stockageImageService,
+                             @Value("${app.boutique.devise:}") String devise) {
         this.produitService = produitService;
         this.categorieService = categorieService;
         this.stockageImageService = stockageImageService;
+        this.devise = devise;
     }
 
     // ---------- Liste et recherche (ADMIN et CAISSIER) ----------
@@ -46,35 +48,28 @@ public class ProduitController {
     public String liste(@RequestParam(name = "q", required = false) String q,
                         Authentication authentication,
                         Model model) {
-        // L'admin voit aussi les produits désactivés ; le caissier uniquement les actifs
-        List<Produit> produits = produitService.rechercher(q, estAdmin(authentication));
-        model.addAttribute("produits", produits);
-        model.addAttribute("q", q == null ? "" : q.trim());
-        model.addAttribute("joursPeremption", JOURS_PEREMPTION_PROCHE);
+        model.addAttribute("produitForm", ProduitDTO.vide());
+        preparerListe(model, authentication, q);
+        preparerEtatFormulaire(model, null, false);
         return "produits/liste";
     }
 
-    // ---------- Création (ADMIN) ----------
-
-    @GetMapping("/nouveau")
-    public String nouveau(Model model) {
-        model.addAttribute("produitForm", ProduitDTO.vide());
-        preparerFormulaire(model, null);
-        return "produits/formulaire";
-    }
+    // ---------- Création (ADMIN) : la fenêtre se rouvre si le formulaire est refusé ----------
 
     @PostMapping
     public String creer(@Valid @ModelAttribute("produitForm") ProduitDTO form,
                         BindingResult result,
                         @RequestParam(name = "imageFichier", required = false) MultipartFile imageFichier,
+                        Authentication authentication,
                         Model model,
                         RedirectAttributes redirect) {
         verifierSaisie(form, result, null);
         String erreurImage = stockageImageService.verifier(imageFichier);
         if (result.hasErrors() || erreurImage != null) {
             model.addAttribute("erreurImage", erreurImage);
-            preparerFormulaire(model, null);
-            return "produits/formulaire";
+            preparerListe(model, authentication, null);
+            preparerEtatFormulaire(model, null, true);
+            return "produits/liste";
         }
         produitService.creer(form, imageFichier);
         redirect.addFlashAttribute("succes", "Produit « " + form.nom().trim() + " » ajouté.");
@@ -83,27 +78,22 @@ public class ProduitController {
 
     // ---------- Modification (ADMIN) ----------
 
-    @GetMapping("/{id}/modifier")
-    public String modifier(@PathVariable Integer id, Model model) {
-        model.addAttribute("produitForm", produitService.formulairePour(id));
-        preparerFormulaire(model, id);
-        return "produits/formulaire";
-    }
-
     @PostMapping("/{id}")
     public String enregistrerModification(@PathVariable Integer id,
                                           @Valid @ModelAttribute("produitForm") ProduitDTO form,
                                           BindingResult result,
                                           @RequestParam(name = "imageFichier", required = false) MultipartFile imageFichier,
                                           @RequestParam(name = "supprimerImage", defaultValue = "false") boolean supprimerImage,
+                                          Authentication authentication,
                                           Model model,
                                           RedirectAttributes redirect) {
         verifierSaisie(form, result, id);
         String erreurImage = stockageImageService.verifier(imageFichier);
         if (result.hasErrors() || erreurImage != null) {
             model.addAttribute("erreurImage", erreurImage);
-            preparerFormulaire(model, id);
-            return "produits/formulaire";
+            preparerListe(model, authentication, null);
+            preparerEtatFormulaire(model, id, true);
+            return "produits/liste";
         }
         produitService.modifier(id, form, imageFichier, supprimerImage);
         redirect.addFlashAttribute("succes", "Produit modifié avec succès.");
@@ -133,17 +123,34 @@ public class ProduitController {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 
-    /** idProduit = null pour une création, l'id du produit pour une modification. */
-    private void preparerFormulaire(Model model, Integer idProduit) {
+    /** Données de la liste (le caissier ne voit que les produits actifs, l'admin voit aussi les désactivés). */
+    private void preparerListe(Model model, Authentication authentication, String q) {
+        boolean admin = estAdmin(authentication);
+        model.addAttribute("produits", produitService.rechercher(q, admin));
+        model.addAttribute("q", q == null ? "" : q.trim());
+        model.addAttribute("joursPeremption", JOURS_PEREMPTION_PROCHE);
+        model.addAttribute("devise", devise);
+        model.addAttribute("produitVide", ProduitDTO.vide());
+        if (admin) {
+            model.addAttribute("categories", categorieService.listerToutes());
+        }
+    }
+
+    /**
+     * État de la fenêtre d'ajout / modification.
+     * idProduit = null pour une création ; ouvrir = true quand la fenêtre doit s'ouvrir toute seule (formulaire refusé).
+     */
+    private void preparerEtatFormulaire(Model model, Integer idProduit, boolean ouvrir) {
         model.addAttribute("edition", idProduit != null);
         model.addAttribute("idProduit", idProduit);
-        model.addAttribute("categories", categorieService.listerToutes());
+        model.addAttribute("ouvrirModal", ouvrir);
         if (idProduit != null) {
             Produit produit = produitService.trouver(idProduit);
             model.addAttribute("stockActuel", produit.getQuantiteStock());
             model.addAttribute("imageUrl", produit.getImageUrl());
             model.addAttribute("imagePerso", produit.getImage() != null);
         } else {
+            model.addAttribute("stockActuel", null);
             model.addAttribute("imageUrl", Produit.IMAGE_PAR_DEFAUT);
             model.addAttribute("imagePerso", false);
         }

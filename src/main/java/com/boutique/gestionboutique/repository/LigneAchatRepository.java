@@ -20,10 +20,10 @@ public interface LigneAchatRepository extends JpaRepository<LigneAchat, LigneAch
     BigDecimal chiffreAffairesEntre(@Param("debut") LocalDateTime debut, @Param("fin") LocalDateTime fin);
 
     /** Produits les plus vendus depuis une date, par quantité décroissante (limiter avec Pageable). */
-    @Query("select new com.boutique.gestionboutique.dto.ProduitVenduDTO(p.nom, sum(l.quantite), sum(l.quantite * l.prixUnitaire)) "
+    @Query("select new com.boutique.gestionboutique.dto.ProduitVenduDTO(p.nom, p.image, sum(l.quantite), sum(l.quantite * l.prixUnitaire)) "
             + "from LigneAchat l join l.produit p "
             + "where l.achat.dateAchat >= :debut "
-            + "group by p.id, p.nom "
+            + "group by p.id, p.nom, p.image "
             + "order by sum(l.quantite) desc, sum(l.quantite * l.prixUnitaire) desc")
     List<ProduitVenduDTO> produitsLesPlusVendus(@Param("debut") LocalDateTime debut, Pageable pageable);
 }

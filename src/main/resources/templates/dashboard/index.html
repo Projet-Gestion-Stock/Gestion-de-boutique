@@ -6,183 +6,233 @@
 
 <nav th:replace="~{components/layout :: navbar}"></nav>
 
-<main class="container py-4">
+<main class="contenu">
 
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <!-- En-tête : salutation et actions rapides -->
+    <div class="tete-page">
         <div>
-            <h1 class="h3 m-0">Tableau de bord</h1>
-            <div class="text-muted">
-                Bonjour <span sec:authentication="name">utilisateur</span>
-            </div>
+            <h1 class="tete-page__titre">Bonjour <span sec:authentication="name">utilisateur</span></h1>
+            <p class="tete-page__sous-titre">Voici l'activité de votre boutique aujourd'hui</p>
         </div>
-        <div class="mt-2 mt-sm-0">
-            <a th:href="@{/achats/nouveau}" class="btn btn-primary">Nouvel achat</a>
-            <a th:href="@{/livraisons/nouvelle}" class="btn btn-outline-primary">Enregistrer une livraison</a>
+        <div class="tete-page__actions">
+            <a th:href="@{/livraisons/nouvelle}" class="btn-app">
+                <svg class="ico"><use href="#n-livraison"/></svg>Enregistrer une livraison
+            </a>
+            <a th:href="@{/achats/nouveau}" class="btn-app btn-app--primaire">
+                <svg class="ico"><use href="#n-plus"/></svg>Nouvel achat
+            </a>
         </div>
     </div>
 
     <div th:replace="~{components/layout :: messages}"></div>
 
     <!-- Indicateurs -->
-    <div class="row g-3 mb-4">
-        <div class="col-sm-6 col-lg-3">
-            <div class="card text-bg-primary h-100">
-                <div class="card-body">
-                    <div class="small">Ventes du jour</div>
-                    <div class="fs-2 fw-bold" th:text="${tableau.nombreVentesJour}">0</div>
-                </div>
+    <section class="grille-kpi">
+        <article class="kpi">
+            <div class="kpi__tete">
+                <span class="kpi__libelle">Ventes du jour</span>
+                <span class="kpi__icone kpi__icone--bleu"><svg class="ico"><use href="#n-panier"/></svg></span>
             </div>
-        </div>
-
-        <div class="col-sm-6 col-lg-3">
-            <div class="card text-bg-success h-100">
-                <div class="card-body">
-                    <div class="small">Chiffre d'affaires du jour</div>
-                    <div class="fs-2 fw-bold"
-                         th:text="${#numbers.formatDecimal(tableau.chiffreAffairesJour, 1, 'WHITESPACE', 2, 'COMMA') + ' ' + devise}">0,00</div>
-                </div>
+            <div class="kpi__valeur">
+                <span class="kpi__nombre" th:text="${tableau.nombreVentesJour}">0</span>
             </div>
-        </div>
+        </article>
 
-        <div class="col-sm-6 col-lg-3">
-            <div class="card text-bg-info h-100">
-                <div class="card-body">
-                    <div class="small">Chiffre d'affaires du mois</div>
-                    <div class="fs-2 fw-bold"
-                         th:text="${#numbers.formatDecimal(tableau.chiffreAffairesMois, 1, 'WHITESPACE', 2, 'COMMA') + ' ' + devise}">0,00</div>
-                </div>
+        <article class="kpi">
+            <div class="kpi__tete">
+                <span class="kpi__libelle">Chiffre d'affaires du jour</span>
+                <span class="kpi__icone kpi__icone--vert"><svg class="ico"><use href="#n-argent"/></svg></span>
             </div>
-        </div>
-
-        <div class="col-sm-6 col-lg-3">
-            <div class="card h-100"
-                 th:classappend="${#lists.isEmpty(tableau.produitsEnAlerte)} ? 'text-bg-secondary' : 'text-bg-warning'">
-                <div class="card-body">
-                    <div class="small">Produits en alerte de stock</div>
-                    <div class="fs-2 fw-bold" th:text="${#lists.size(tableau.produitsEnAlerte)}">0</div>
-                </div>
+            <div class="kpi__valeur">
+                <span class="kpi__nombre"
+                      th:text="${#numbers.formatDecimal(tableau.chiffreAffairesJour, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</span>
+                <span class="kpi__devise" th:text="${devise}">FCFA</span>
             </div>
-        </div>
-    </div>
+        </article>
 
-    <div class="row g-4 mb-4">
+        <article class="kpi">
+            <div class="kpi__tete">
+                <span class="kpi__libelle">Chiffre d'affaires du mois</span>
+                <span class="kpi__icone kpi__icone--marine"><svg class="ico"><use href="#n-calendrier"/></svg></span>
+            </div>
+            <div class="kpi__valeur">
+                <span class="kpi__nombre"
+                      th:text="${#numbers.formatDecimal(tableau.chiffreAffairesMois, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</span>
+                <span class="kpi__devise" th:text="${devise}">FCFA</span>
+            </div>
+        </article>
+
+        <article class="kpi">
+            <div class="kpi__tete">
+                <span class="kpi__libelle">Produits en alerte de stock</span>
+                <span class="kpi__icone kpi__icone--vert" th:if="${#lists.isEmpty(tableau.produitsEnAlerte)}">
+                    <svg class="ico"><use href="#n-alerte"/></svg>
+                </span>
+                <span class="kpi__icone kpi__icone--orange" th:unless="${#lists.isEmpty(tableau.produitsEnAlerte)}">
+                    <svg class="ico"><use href="#n-alerte"/></svg>
+                </span>
+            </div>
+            <div class="kpi__valeur">
+                <span class="kpi__nombre" th:classappend="${!#lists.isEmpty(tableau.produitsEnAlerte)} ? 'kpi__nombre--alerte'"
+                      th:text="${#lists.size(tableau.produitsEnAlerte)}">0</span>
+            </div>
+        </article>
+    </section>
+
+    <section class="grille-2">
 
         <!-- Alertes de stock -->
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header fw-bold">Stock faible ou en rupture</div>
-                <div class="card-body p-0">
-                    <p th:if="${#lists.isEmpty(tableau.produitsEnAlerte)}" class="text-muted p-3 m-0">
-                        Aucun produit sous son seuil d'alerte.
-                    </p>
-                    <div class="table-responsive" th:unless="${#lists.isEmpty(tableau.produitsEnAlerte)}">
-                        <table class="table table-sm table-hover align-middle m-0">
-                            <thead>
-                            <tr>
-                                <th>Produit</th>
-                                <th class="text-end">Stock</th>
-                                <th class="text-end">Seuil</th>
-                                <th></th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr th:each="p : ${tableau.produitsEnAlerte}">
-                                <td th:text="${p.nom}">Produit</td>
-                                <td class="text-end" th:text="${p.quantiteStock}">0</td>
-                                <td class="text-end" th:text="${p.seuilAlerte}">5</td>
-                                <td class="text-end">
-                                    <span th:if="${p.quantiteStock == 0}" class="badge bg-danger">Rupture</span>
-                                    <span th:if="${p.quantiteStock > 0}" class="badge bg-warning text-dark">Stock faible</span>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        <article class="panneau">
+            <div class="panneau__tete">
+                <h2 class="panneau__titre">Stock faible ou en rupture</h2>
+                <span class="pastille pastille--rouge"
+                      th:unless="${#lists.isEmpty(tableau.produitsEnAlerte)}"
+                      th:with="n=${#lists.size(tableau.produitsEnAlerte)}"
+                      th:text="|${n} ${n > 1 ? 'alertes' : 'alerte'}|">5 alertes</span>
             </div>
-        </div>
 
-        <!-- Alertes de péremption -->
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header fw-bold">
-                    Péremption (dans les <span th:text="${tableau.joursPeremption}">30</span> jours)
-                </div>
-                <div class="card-body p-0">
-                    <p th:if="${#lists.isEmpty(tableau.produitsPeremption)}" class="text-muted p-3 m-0">
-                        Aucun produit périmé ou proche de la péremption.
-                    </p>
-                    <div class="table-responsive" th:unless="${#lists.isEmpty(tableau.produitsPeremption)}">
-                        <table class="table table-sm table-hover align-middle m-0">
-                            <thead>
-                            <tr>
-                                <th>Produit</th>
-                                <th>Date</th>
-                                <th></th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr th:each="p : ${tableau.produitsPeremption}">
-                                <td th:text="${p.nom}">Produit</td>
-                                <td th:text="${#temporals.format(p.datePeremption, 'dd/MM/yyyy')}">01/01/2027</td>
-                                <td class="text-end">
-                                    <span th:if="${p.joursAvantPeremption < 0}" class="badge bg-danger"
-                                          th:text="'Périmé depuis ' + ${p.joursAvantPeremption * -1} + ' j'">Périmé</span>
-                                    <span th:if="${p.joursAvantPeremption == 0}" class="badge bg-danger">Périme aujourd'hui</span>
-                                    <span th:if="${p.joursAvantPeremption > 0}" class="badge bg-warning text-dark"
-                                          th:text="'Dans ' + ${p.joursAvantPeremption} + ' j'">Bientôt</span>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="vide" th:if="${#lists.isEmpty(tableau.produitsEnAlerte)}">
+                <span class="vide__icone"><svg class="ico"><use href="#n-valide"/></svg></span>
+                <span>Aucun produit sous son seuil d'alerte.</span>
             </div>
-        </div>
-    </div>
 
-    <!-- Produits les plus vendus -->
-    <div class="card mb-4">
-        <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
-            <span class="fw-bold">
-                Produits les plus vendus (<span th:text="${tableau.periodeJours}">30</span> derniers jours)
-            </span>
-            <div class="btn-group btn-group-sm" role="group" aria-label="Période">
-                <a th:href="@{/(jours=7)}" class="btn btn-outline-secondary"
-                   th:classappend="${tableau.periodeJours == 7} ? 'active'">7 jours</a>
-                <a th:href="@{/(jours=30)}" class="btn btn-outline-secondary"
-                   th:classappend="${tableau.periodeJours == 30} ? 'active'">30 jours</a>
-                <a th:href="@{/(jours=90)}" class="btn btn-outline-secondary"
-                   th:classappend="${tableau.periodeJours == 90} ? 'active'">90 jours</a>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <p th:if="${#lists.isEmpty(tableau.produitsLesPlusVendus)}" class="text-muted p-3 m-0">
-                Aucune vente sur cette période.
-            </p>
-            <div class="table-responsive" th:unless="${#lists.isEmpty(tableau.produitsLesPlusVendus)}">
-                <table class="table table-sm table-hover align-middle m-0">
+            <div class="panneau__defile" th:unless="${#lists.isEmpty(tableau.produitsEnAlerte)}">
+                <table class="tableau-app">
                     <thead>
                     <tr>
-                        <th style="width: 8%">#</th>
                         <th>Produit</th>
-                        <th class="text-end">Quantité vendue</th>
-                        <th class="text-end">Montant</th>
+                        <th class="droite">Stock</th>
+                        <th class="droite">Seuil</th>
+                        <th class="droite">Statut</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="v, st : ${tableau.produitsLesPlusVendus}">
-                        <td th:text="${st.count}">1</td>
-                        <td th:text="${v.nom}">Produit</td>
-                        <td class="text-end" th:text="${v.quantite}">0</td>
-                        <td class="text-end"
-                            th:text="${#numbers.formatDecimal(v.montant, 1, 'WHITESPACE', 2, 'COMMA') + ' ' + devise}">0,00</td>
+                    <tr th:each="p : ${tableau.produitsEnAlerte}">
+                        <td>
+                            <div class="produit">
+                                <img th:src="@{${p.imageUrl}}" alt="">
+                                <span th:text="${p.nom}">Produit</span>
+                            </div>
+                        </td>
+                        <td class="droite nombre"
+                            th:classappend="${p.quantiteStock == 0} ? 'texte-rouge' : 'texte-orange'"
+                            th:text="${p.quantiteStock}">0</td>
+                        <td class="droite nombre" th:text="${p.seuilAlerte}">5</td>
+                        <td class="droite">
+                            <span th:if="${p.quantiteStock == 0}" class="pastille pastille--rouge">Rupture</span>
+                            <span th:if="${p.quantiteStock > 0}" class="pastille pastille--orange">Stock faible</span>
+                        </td>
                     </tr>
                     </tbody>
                 </table>
             </div>
+
+            <div class="panneau__pied">
+                <a th:href="@{/produits}" class="lien-fleche">
+                    Voir tous les produits <svg class="ico"><use href="#n-fleche"/></svg>
+                </a>
+            </div>
+        </article>
+
+        <!-- Alertes de péremption -->
+        <article class="panneau">
+            <div class="panneau__tete">
+                <h2 class="panneau__titre">
+                    Péremption (dans les <span th:text="${tableau.joursPeremption}">30</span> jours)
+                </h2>
+                <span class="pastille pastille--orange"
+                      th:unless="${#lists.isEmpty(tableau.produitsPeremption)}"
+                      th:with="n=${#lists.size(tableau.produitsPeremption)}"
+                      th:text="|${n} ${n > 1 ? 'alertes' : 'alerte'}|">4 alertes</span>
+            </div>
+
+            <div class="vide" th:if="${#lists.isEmpty(tableau.produitsPeremption)}">
+                <span class="vide__icone"><svg class="ico"><use href="#n-valide"/></svg></span>
+                <span>Aucun produit périmé ou proche de la péremption.</span>
+            </div>
+
+            <div class="panneau__defile" th:unless="${#lists.isEmpty(tableau.produitsPeremption)}">
+                <table class="tableau-app">
+                    <thead>
+                    <tr>
+                        <th>Produit</th>
+                        <th>Date</th>
+                        <th class="droite">Statut</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="p : ${tableau.produitsPeremption}">
+                        <td>
+                            <div class="produit">
+                                <img th:src="@{${p.imageUrl}}" alt="">
+                                <span th:text="${p.nom}">Produit</span>
+                            </div>
+                        </td>
+                        <td class="nombre" th:text="${#temporals.format(p.datePeremption, 'dd/MM/yyyy')}">01/01/2027</td>
+                        <td class="droite">
+                            <span th:if="${p.joursAvantPeremption < 0}" class="pastille pastille--rouge"
+                                  th:text="'Périmé depuis ' + ${p.joursAvantPeremption * -1} + ' j'">Périmé</span>
+                            <span th:if="${p.joursAvantPeremption == 0}" class="pastille pastille--rouge">Périme aujourd'hui</span>
+                            <span th:if="${p.joursAvantPeremption > 0}" class="pastille pastille--orange"
+                                  th:text="'Dans ' + ${p.joursAvantPeremption} + ' j'">Bientôt</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="panneau__pied">
+                <a th:href="@{/produits}" class="lien-fleche">
+                    Voir les produits <svg class="ico"><use href="#n-fleche"/></svg>
+                </a>
+            </div>
+        </article>
+    </section>
+
+    <!-- Produits les plus vendus -->
+    <section class="panneau panneau--plein">
+        <div class="panneau__tete">
+            <div>
+                <h2 class="panneau__titre">Produits les plus vendus</h2>
+                <p class="panneau__sous-titre">
+                    Classement sur les <span th:text="${tableau.periodeJours}">30</span> derniers jours
+                </p>
+            </div>
+            <div class="segments" role="group" aria-label="Période">
+                <a th:href="@{/(jours=7)}" th:classappend="${tableau.periodeJours == 7} ? 'actif'">7 jours</a>
+                <a th:href="@{/(jours=30)}" th:classappend="${tableau.periodeJours == 30} ? 'actif'">30 jours</a>
+                <a th:href="@{/(jours=90)}" th:classappend="${tableau.periodeJours == 90} ? 'actif'">90 jours</a>
+            </div>
         </div>
-    </div>
+
+        <div class="vide" th:if="${#lists.isEmpty(tableau.produitsLesPlusVendus)}">
+            <span class="vide__icone vide__icone--neutre"><svg class="ico"><use href="#n-panier"/></svg></span>
+            <span>Aucune vente sur cette période.</span>
+        </div>
+
+        <!-- max = quantité du premier : la barre de chaque produit est proportionnelle -->
+        <div th:unless="${#lists.isEmpty(tableau.produitsLesPlusVendus)}"
+             th:with="max=${tableau.produitsLesPlusVendus[0].quantite}">
+            <div class="classement__ligne" th:each="v, st : ${tableau.produitsLesPlusVendus}">
+                <span class="classement__rang" th:text="${st.count}">1</span>
+                <div class="produit">
+                    <img th:src="@{${v.imageUrl}}" alt="">
+                    <span th:text="${v.nom}">Produit</span>
+                </div>
+                <div class="classement__barre">
+                    <span th:style="'width: calc(100% * ' + ${v.quantite} + ' / ' + ${max} + ')'"></span>
+                </div>
+                <div class="classement__chiffre classement__chiffre--quantite">
+                    <small>Quantité</small>
+                    <strong th:text="${v.quantite}">0</strong>
+                </div>
+                <div class="classement__chiffre">
+                    <small>Total</small>
+                    <strong th:text="${#numbers.formatDecimal(v.montant, 1, 'WHITESPACE', 2, 'COMMA') + ' ' + devise}">0,00</strong>
+                </div>
+            </div>
+        </div>
+    </section>
 </main>
 
 <th:block th:replace="~{components/layout :: scripts}"></th:block>

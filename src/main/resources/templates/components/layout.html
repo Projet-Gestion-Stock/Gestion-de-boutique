@@ -7,61 +7,154 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${titre} + ' - Gestion de boutique'">Gestion de boutique</title>
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.3/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 
 <body>
 
-<nav th:fragment="navbar" class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" th:href="@{/}">Gestion de boutique</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                data-bs-target="#menuPrincipal" aria-controls="menuPrincipal"
-                aria-expanded="false" aria-label="Afficher le menu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+<!-- Menu latéral + barre supérieure (toutes les pages connectées) -->
+<th:block th:fragment="navbar">
 
-        <div class="collapse navbar-collapse" id="menuPrincipal">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-                    <a class="nav-link" th:href="@{/}">Tableau de bord</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" th:href="@{/achats/nouveau}">Nouvel achat</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" th:href="@{/achats}">Achats</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" th:href="@{/produits}">Produits</a>
-                </li>
-                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-                    <a class="nav-link" th:href="@{/categories}">Catégories</a>
-                </li>
-                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-                    <a class="nav-link" th:href="@{/grossistes}">Grossistes</a>
-                </li>
-                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-                    <a class="nav-link" th:href="@{/livraisons}">Livraisons</a>
-                </li>
-                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-                    <a class="nav-link" th:href="@{/utilisateurs}">Utilisateurs</a>
-                </li>
-            </ul>
+    <!-- Icônes (sprite SVG, aucune ressource externe) -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+        <symbol id="n-tableau" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></symbol>
+        <symbol id="n-panier" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></symbol>
+        <symbol id="n-achats" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></symbol>
+        <symbol id="n-produits" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></symbol>
+        <symbol id="n-categories" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></symbol>
+        <symbol id="n-grossistes" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></symbol>
+        <symbol id="n-livraison" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></symbol>
+        <symbol id="n-utilisateurs" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+        <symbol id="n-utilisateur" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+        <symbol id="n-deconnexion" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+        <symbol id="n-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+        <symbol id="n-fleche" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
+        <symbol id="n-alerte" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+        <symbol id="n-argent" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></symbol>
+        <symbol id="n-calendrier" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+        <symbol id="n-valide" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+        <symbol id="n-menu" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></symbol>
+    </svg>
 
-            <div class="d-flex align-items-center">
-                <span class="navbar-text me-2" sec:authentication="name">utilisateur</span>
-                <span class="badge bg-warning text-dark me-3" sec:authorize="hasRole('ADMIN')">ADMIN</span>
-                <span class="badge bg-secondary me-3" sec:authorize="hasRole('CAISSIER')">CAISSIER</span>
+    <div class="app-voile" id="menuVoile"></div>
 
-                <a th:href="@{/profil}" class="btn btn-outline-light btn-sm me-2">Mon profil</a>
+    <aside class="app-menu" id="menuLateral" aria-label="Menu principal"
+           th:attr="data-image-defaut=@{/images/logo-defaut.jpg}">
 
-                <form th:action="@{/logout}" method="post" class="d-flex m-0">
-                    <button type="submit" class="btn btn-outline-light btn-sm">Déconnexion</button>
-                </form>
-            </div>
+        <a class="menu__marque" th:href="@{/}">
+            <span class="menu__logo"><img th:src="@{/images/logo.png}" alt=""></span>
+            <span>
+                <span class="menu__nom d-block">Gestion de boutique</span>
+                <span class="menu__sous-nom d-block">Caisse &amp; gestion</span>
+            </span>
+        </a>
+
+        <nav class="app-nav">
+            <a th:href="@{/}" sec:authorize="hasRole('ADMIN')">
+                <svg class="ico"><use href="#n-tableau"/></svg>Tableau de bord</a>
+            <a th:href="@{/achats/nouveau}">
+                <svg class="ico"><use href="#n-panier"/></svg>Nouvel achat</a>
+            <a th:href="@{/achats}">
+                <svg class="ico"><use href="#n-achats"/></svg>Achats</a>
+            <a th:href="@{/produits}">
+                <svg class="ico"><use href="#n-produits"/></svg>Produits</a>
+            <a th:href="@{/categories}" sec:authorize="hasRole('ADMIN')">
+                <svg class="ico"><use href="#n-categories"/></svg>Catégories</a>
+            <a th:href="@{/grossistes}" sec:authorize="hasRole('ADMIN')">
+                <svg class="ico"><use href="#n-grossistes"/></svg>Grossistes</a>
+            <a th:href="@{/livraisons}" sec:authorize="hasRole('ADMIN')">
+                <svg class="ico"><use href="#n-livraison"/></svg>Livraisons</a>
+            <a th:href="@{/utilisateurs}" sec:authorize="hasRole('ADMIN')">
+                <svg class="ico"><use href="#n-utilisateurs"/></svg>Utilisateurs</a>
+            <a th:href="@{/profil}">
+                <svg class="ico"><use href="#n-utilisateur"/></svg>Mon profil</a>
+        </nav>
+
+        <div class="menu__utilisateur">
+            <form th:action="@{/logout}" method="post" class="m-0">
+                <button type="submit" class="btn-app" title="Se déconnecter">
+                    <svg class="ico"><use href="#n-deconnexion"/></svg>
+                    <span class="entete__deconnexion-texte">Déconnexion</span>
+                </button>
+            </form>
         </div>
-    </div>
-</nav>
+    </aside>
+
+    <header class="app-entete">
+        <div class="entete__gauche">
+            <button type="button" class="entete__menu" id="menuBouton" aria-label="Ouvrir le menu">
+                <svg class="ico"><use href="#n-menu"/></svg>
+            </button>
+            <span class="entete__titre" id="titrePage"></span>
+        </div>
+        <div class="entete__droite">
+            <span class="entete__date" id="datePage"></span>
+            <div class="entete__utilisateur">
+                <span class="utilisateur__avatar" id="avatarUtilisateur">?</span>
+                <span class="utilisateur__texte">
+                    <span class="utilisateur__nom" id="nomUtilisateur" sec:authentication="name">utilisateur</span>
+                    <span class="pastille pastille--orange" sec:authorize="hasRole('ADMIN')">ADMIN</span>
+                    <span class="pastille pastille--bleu" sec:authorize="hasRole('CAISSIER')">CAISSIER</span>
+                </span>
+            </div>
+            <form th:action="@{/logout}" method="post" class="m-0">
+                <button type="submit" class="btn-app" title="Se déconnecter">
+                    <svg class="ico"><use href="#n-deconnexion"/></svg>
+                    <span class="entete__deconnexion-texte">Déconnexion</span>
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <script>
+        (function () {
+            var corps = document.body;
+            var menu = document.getElementById('menuLateral');
+
+            // Lien actif : la correspondance la plus longue avec l'adresse de la page
+            var chemin = location.pathname.replace(/\/+$/, '') || '/';
+            var actif = null, longueur = -1;
+            menu.querySelectorAll('.app-nav a').forEach(function (lien) {
+                var cible = (lien.getAttribute('href') || '').split('?')[0].replace(/\/+$/, '') || '/';
+                var correspond = cible === '/' ? chemin === '/'
+                    : (chemin === cible || chemin.indexOf(cible + '/') === 0);
+                if (correspond && cible.length > longueur) { actif = lien; longueur = cible.length; }
+            });
+            if (actif) { actif.classList.add('actif'); actif.setAttribute('aria-current', 'page'); }
+
+            // Titre de la barre supérieure = titre du document, sans le nom de l'application
+            document.getElementById('titrePage').textContent =
+                document.title.replace(/\s*-\s*Gestion de boutique$/, '');
+
+            // Date du jour
+            document.getElementById('datePage').textContent = new Date().toLocaleDateString('fr-FR',
+                { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+            // Initiales de l'avatar (awa.diop -> AD)
+            var identifiant = document.getElementById('nomUtilisateur').textContent.trim();
+            var morceaux = identifiant.split(/[^A-Za-z0-9\u00C0-\u00FF]+/).filter(Boolean);
+            document.getElementById('avatarUtilisateur').textContent =
+                (morceaux.length > 1 ? morceaux[0][0] + morceaux[1][0] : identifiant.slice(0, 2)).toUpperCase();
+
+            // Menu sur petit écran
+            function basculer(ouvert) { corps.classList.toggle('menu-ouvert', ouvert); }
+            document.getElementById('menuBouton').addEventListener('click', function () {
+                basculer(!corps.classList.contains('menu-ouvert'));
+            });
+            document.getElementById('menuVoile').addEventListener('click', function () { basculer(false); });
+
+            // Image de repli : une image introuvable est remplacée par l'image par défaut
+            var imageDefaut = menu.dataset.imageDefaut;
+            document.addEventListener('error', function (e) {
+                var img = e.target;
+                if (img && img.tagName === 'IMG' && !img.dataset.repli) {
+                    img.dataset.repli = '1';
+                    img.src = imageDefaut;
+                }
+            }, true);
+        })();
+    </script>
+</th:block>
 
 <!-- Menu réduit : première connexion (aucune autre page n'est accessible) -->
 <nav th:fragment="navbarMinimal" class="navbar navbar-dark bg-dark">
@@ -73,10 +166,27 @@
     </div>
 </nav>
 
-<!-- Messages "flash" affichés après une redirection -->
+<!-- Messages "flash" : notifications en haut à droite, elles disparaissent seules -->
 <div th:fragment="messages">
-    <div th:if="${succes}" class="alert alert-success" role="alert" th:text="${succes}"></div>
-    <div th:if="${erreur}" class="alert alert-danger" role="alert" th:text="${erreur}"></div>
+    <div class="notifs" th:if="${succes != null or erreur != null}">
+        <div class="notif notif--succes" th:if="${succes != null}" role="status">
+            <svg class="ico notif__icone"><use href="#n-valide"/></svg>
+            <span class="notif__texte" th:text="${succes}"></span>
+            <button type="button" class="notif__fermer" aria-label="Fermer"
+                    onclick="this.parentElement.remove()">&times;</button>
+        </div>
+        <div class="notif notif--erreur" th:if="${erreur != null}" role="alert">
+            <svg class="ico notif__icone"><use href="#n-alerte"/></svg>
+            <span class="notif__texte" th:text="${erreur}"></span>
+            <button type="button" class="notif__fermer" aria-label="Fermer"
+                    onclick="this.parentElement.remove()">&times;</button>
+        </div>
+        <script>
+            setTimeout(function () {
+                document.querySelectorAll('.notif').forEach(function (n) { n.remove(); });
+            }, 6000);
+        </script>
+    </div>
 </div>
 
 <th:block th:fragment="scripts">
