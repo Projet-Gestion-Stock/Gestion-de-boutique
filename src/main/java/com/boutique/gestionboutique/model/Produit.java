@@ -4,8 +4,6 @@ import jakarta.persistence.*;
 import lombok.NoArgsConstructor;
 import lombok.*;
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 
 @Entity
 @Table(name = "produit")
@@ -37,9 +35,6 @@ public class Produit {
     @Column(name = "seuil_alerte", nullable = false)
     private int seuilAlerte = 5;
 
-    @Column(name = "date_peremption")
-    private LocalDate datePeremption;
-
     @Column(name = "image", length = 255)
     private String image;
 
@@ -52,21 +47,6 @@ public class Produit {
 
     public boolean isStockFaible() {
         return quantiteStock <= seuilAlerte;
-    }
-
-    public boolean isPerime() {
-        return datePeremption != null && datePeremption.isBefore(LocalDate.now());
-    }
-
-    public boolean isPeremptionProche(int jours) {
-        return datePeremption != null
-                && !isPerime()
-                && !datePeremption.isAfter(LocalDate.now().plusDays(jours));
-    }
-
-    /** Nombre de jours avant la péremption (négatif si déjà périmé), ou null s'il n'y a pas de date. */
-    public Long getJoursAvantPeremption() {
-        return datePeremption == null ? null : ChronoUnit.DAYS.between(LocalDate.now(), datePeremption);
     }
 
     /** Adresse de l'image à afficher : celle du produit, ou l'image par défaut. */

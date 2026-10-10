@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 
@@ -46,10 +45,6 @@ public interface ProduitRepository extends JpaRepository<Produit, Integer> {
     @EntityGraph(attributePaths = "categorie")
     @Query("select p from Produit p where p.actif = true and p.quantiteStock <= p.seuilAlerte order by p.quantiteStock asc")
     List<Produit> findProduitsEnAlerte();
-
-    /** Produits actifs dont la péremption est au plus tard à la date donnée. */
-    @EntityGraph(attributePaths = "categorie")
-    List<Produit> findByActifTrueAndDatePeremptionLessThanEqualOrderByDatePeremptionAsc(LocalDate date);
 
     // ---------- Mouvements de stock (livraisons, achats) ----------
 

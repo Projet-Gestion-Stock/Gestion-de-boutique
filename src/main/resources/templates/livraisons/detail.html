@@ -40,6 +40,8 @@
                 <th>Produit</th>
                 <th class="text-end">Quantité</th>
                 <th class="text-end">Prix d'achat</th>
+                <th>Péremption</th>
+                <th class="text-end">Restant</th>
                 <th class="text-end">Sous-total</th>
             </tr>
             </thead>
@@ -49,13 +51,24 @@
                 <td class="text-end" th:text="${ligne.quantite}">0</td>
                 <td class="text-end"
                     th:text="${#numbers.formatDecimal(ligne.prixAchat, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
+                <td>
+                    <span th:if="${ligne.datePeremption == null}" class="text-muted">-</span>
+                    <span th:if="${ligne.datePeremption != null}"
+                          th:text="${#temporals.format(ligne.datePeremption, 'dd/MM/yyyy')}">01/01/2027</span>
+                    <span th:if="${ligne.perime}" class="badge bg-danger ms-1">Périmé</span>
+                </td>
+                <td class="text-end">
+                    <span th:text="${ligne.quantiteRestante} + ' / ' + ${ligne.quantite}">0 / 0</span>
+                    <div class="small text-muted" th:if="${ligne.quantiteRetiree > 0}"
+                         th:text="${ligne.quantiteRetiree} + ' retirée(s)'">retirée(s)</div>
+                </td>
                 <td class="text-end"
                     th:text="${#numbers.formatDecimal(ligne.sousTotal, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
             </tr>
             </tbody>
             <tfoot>
             <tr class="fw-bold">
-                <td colspan="3" class="text-end">Total</td>
+                <td colspan="5" class="text-end">Total</td>
                 <td class="text-end"
                     th:text="${#numbers.formatDecimal(livraison.total, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
             </tr>

@@ -34,9 +34,10 @@
             <table class="table align-middle">
                 <thead>
                 <tr>
-                    <th style="width: 45%">Produit</th>
-                    <th style="width: 20%">Quantité reçue</th>
-                    <th style="width: 25%">Prix d'achat unitaire</th>
+                    <th style="width: 35%">Produit</th>
+                    <th style="width: 14%">Quantité reçue</th>
+                    <th style="width: 19%">Prix d'achat unitaire</th>
+                    <th style="width: 22%">Péremption du lot</th>
                     <th style="width: 10%"></th>
                 </tr>
                 </thead>
@@ -67,6 +68,12 @@
                                th:classappend="${#fields.hasErrors('lignes[__${st.index}__].prixAchat')} ? 'is-invalid'">
                         <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].prixAchat}">Erreur</div>
                     </td>
+                    <td>
+                        <input type="date" th:field="*{lignes[__${st.index}__].datePeremption}"
+                               class="form-control" aria-label="Date de péremption du lot"
+                               th:classappend="${#fields.hasErrors('lignes[__${st.index}__].datePeremption')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].datePeremption}">Erreur</div>
+                    </td>
                     <td class="text-end">
                         <button type="button" class="btn btn-sm btn-outline-danger btn-retirer">Retirer</button>
                     </td>
@@ -74,6 +81,10 @@
                 </tbody>
             </table>
         </div>
+        <p class="form-text">
+            La date de péremption est propre à ce lot. Laissez-la vide pour un produit qui ne périme pas.
+            Une date déjà dépassée est refusée.
+        </p>
 
         <!-- Catalogue des produits (lu par le script, jamais affiché) -->
         <div id="catalogue" hidden>
@@ -107,6 +118,10 @@
                 <td>
                     <input type="number" min="0" step="0.01" name="lignes[__INDEX__].prixAchat"
                            class="form-control" aria-label="Prix d'achat">
+                </td>
+                <td>
+                    <input type="date" name="lignes[__INDEX__].datePeremption"
+                           class="form-control" aria-label="Date de péremption du lot">
                 </td>
                 <td class="text-end">
                     <button type="button" class="btn btn-sm btn-outline-danger btn-retirer">Retirer</button>

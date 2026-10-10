@@ -134,47 +134,49 @@
             </div>
         </article>
 
-        <!-- Alertes de péremption -->
+        <!-- Alertes de péremption (par lot) -->
         <article class="panneau">
             <div class="panneau__tete">
                 <h2 class="panneau__titre">
-                    Péremption (dans les <span th:text="${tableau.joursPeremption}">30</span> jours)
+                    Péremption par lot (dans les <span th:text="${tableau.joursPeremption}">30</span> jours)
                 </h2>
                 <span class="pastille pastille--orange"
-                      th:unless="${#lists.isEmpty(tableau.produitsPeremption)}"
-                      th:with="n=${#lists.size(tableau.produitsPeremption)}"
+                      th:unless="${#lists.isEmpty(tableau.lotsPeremption)}"
+                      th:with="n=${#lists.size(tableau.lotsPeremption)}"
                       th:text="|${n} ${n > 1 ? 'alertes' : 'alerte'}|">4 alertes</span>
             </div>
 
-            <div class="vide" th:if="${#lists.isEmpty(tableau.produitsPeremption)}">
+            <div class="vide" th:if="${#lists.isEmpty(tableau.lotsPeremption)}">
                 <span class="vide__icone"><svg class="ico"><use href="#n-valide"/></svg></span>
-                <span>Aucun produit périmé ou proche de la péremption.</span>
+                <span>Aucun lot périmé ou proche de la péremption.</span>
             </div>
 
-            <div class="panneau__defile" th:unless="${#lists.isEmpty(tableau.produitsPeremption)}">
+            <div class="panneau__defile" th:unless="${#lists.isEmpty(tableau.lotsPeremption)}">
                 <table class="tableau-app">
                     <thead>
                     <tr>
                         <th>Produit</th>
                         <th>Date</th>
+                        <th class="droite">Unités</th>
                         <th class="droite">Statut</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="p : ${tableau.produitsPeremption}">
+                    <tr th:each="lot : ${tableau.lotsPeremption}">
                         <td>
                             <div class="produit">
-                                <img th:src="@{${p.imageUrl}}" alt="">
-                                <span th:text="${p.nom}">Produit</span>
+                                <img th:src="@{${lot.imageUrl}}" alt="">
+                                <span th:text="${lot.produitNom}">Produit</span>
                             </div>
                         </td>
-                        <td class="nombre" th:text="${#temporals.format(p.datePeremption, 'dd/MM/yyyy')}">01/01/2027</td>
+                        <td class="nombre" th:text="${#temporals.format(lot.datePeremption, 'dd/MM/yyyy')}">01/01/2027</td>
+                        <td class="droite nombre" th:text="${lot.quantiteRestante}">0</td>
                         <td class="droite">
-                            <span th:if="${p.joursAvantPeremption < 0}" class="pastille pastille--rouge"
-                                  th:text="'Périmé depuis ' + ${p.joursAvantPeremption * -1} + ' j'">Périmé</span>
-                            <span th:if="${p.joursAvantPeremption == 0}" class="pastille pastille--rouge">Périme aujourd'hui</span>
-                            <span th:if="${p.joursAvantPeremption > 0}" class="pastille pastille--orange"
-                                  th:text="'Dans ' + ${p.joursAvantPeremption} + ' j'">Bientôt</span>
+                            <span th:if="${lot.joursRestants < 0}" class="pastille pastille--rouge"
+                                  th:text="'Périmé depuis ' + ${lot.joursRestants * -1} + ' j'">Périmé</span>
+                            <span th:if="${lot.joursRestants == 0}" class="pastille pastille--rouge">Périme aujourd'hui</span>
+                            <span th:if="${lot.joursRestants > 0}" class="pastille pastille--orange"
+                                  th:text="'Dans ' + ${lot.joursRestants} + ' j'">Bientôt</span>
                         </td>
                     </tr>
                     </tbody>
@@ -182,8 +184,8 @@
             </div>
 
             <div class="panneau__pied">
-                <a th:href="@{/produits}" class="lien-fleche">
-                    Voir les produits <svg class="ico"><use href="#n-fleche"/></svg>
+                <a th:href="@{/produits/peremptions}" class="lien-fleche">
+                    Gérer les péremptions <svg class="ico"><use href="#n-fleche"/></svg>
                 </a>
             </div>
         </article>

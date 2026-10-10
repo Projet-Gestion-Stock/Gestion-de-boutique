@@ -27,6 +27,9 @@
                th:text="${#strings.isEmpty(q)} ? |${n} ${n > 1 ? 'produits' : 'produit'} au catalogue| : |${n} ${n > 1 ? 'résultats' : 'résultat'} pour « ${q} »|">42 produits au catalogue</p>
         </div>
         <div class="tete-page__actions" sec:authorize="hasRole('ADMIN')">
+            <a th:href="@{/produits/peremptions}" class="btn-app">
+                <svg class="ico"><use href="#n-alerte"/></svg>Péremptions
+            </a>
             <button type="button" class="btn-app btn-app--primaire" id="btnAjouter">
                 <svg class="ico"><use href="#n-plus"/></svg>Ajouter un produit
             </button>
@@ -87,16 +90,21 @@
                         <div class="stock__seuil" th:text="'Seuil : ' + ${p.seuilAlerte}">Seuil : 5</div>
                     </td>
                     <td class="compact">
-                        <span th:if="${p.datePeremption == null}" class="text-muted">-</span>
-                        <div class="perem" th:if="${p.datePeremption != null}">
-                            <span class="nombre" th:text="${#temporals.format(p.datePeremption, 'dd/MM/yyyy')}">01/01/2027</span>
-                            <span th:if="${p.perime}" class="pastille pastille--rouge">Périmé</span>
-                            <span th:if="${p.isPeremptionProche(joursPeremption)}" class="pastille pastille--orange">Péremption proche</span>
-                        </div>
+                        <th:block th:with="info=${infosPeremption[p.id]}">
+                            <span th:if="${info == null}" class="text-muted">-</span>
+                            <div class="perem" th:if="${info != null}">
+                                <span th:if="${info.prochainePeremption != null}" class="nombre"
+                                      th:text="${#temporals.format(info.prochainePeremption, 'dd/MM/yyyy')}">01/01/2027</span>
+                                <span th:if="${info.prochainePeremption != null and info.joursAvantProchaine <= joursPeremption}"
+                                      class="pastille pastille--orange">Péremption proche</span>
+                                <span th:if="${info.quantitePerimee > 0}" class="pastille pastille--rouge"
+                                      th:text="${info.quantitePerimee} + ' périmé(s)'">3 périmé(s)</span>
+                            </div>
+                        </th:block>
                     </td>
                     <td class="droite compact" sec:authorize="hasRole('ADMIN')">
                         <button type="button" class="btn-icone btn-modifier" title="Modifier" aria-label="Modifier ce produit"
-                                th:attr="data-id=${p.id}, data-nom=${p.nom}, data-categorie=${p.categorie.id}, data-prix=${p.prixVente}, data-stock=${p.quantiteStock}, data-seuil=${p.seuilAlerte}, data-peremption=${p.datePeremption}, data-image=@{${p.imageUrl}}, data-image-perso=${p.image != null}">
+                                th:attr="data-id=${p.id}, data-nom=${p.nom}, data-categorie=${p.categorie.id}, data-prix=${p.prixVente}, data-stock=${p.quantiteStock}, data-seuil=${p.seuilAlerte}, data-image=@{${p.imageUrl}}, data-image-perso=${p.image != null}">
                             <svg class="ico"><use href="#p-modifier"/></svg>
                         </button>
                         <button th:if="${p.actif}" type="button" class="btn-icone btn-icone--danger btn-desactiver"
@@ -126,7 +134,6 @@
          th:data-mode="${edition} ? 'edition' : 'creation'"
          th:data-image-perso="${imagePerso}"
          th:data-image-defaut="@{/images/logo-defaut.jpg}"
-         th:data-stock-defaut="${produitVide.quantiteStock}"
          th:data-seuil-defaut="${produitVide.seuilAlerte}">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-produit">
             <form class="modal-content" id="formProduit" th:object="${produitForm}"
@@ -172,12 +179,11 @@
                             </div>
                         </div>
 
-                        <!-- Création : stock initial -->
+                        <!-- Création : aucun stock saisi (règle P6) -->
                         <div class="col-md-6" id="groupeStockInitial">
-                            <label for="quantiteStock" class="form-label">Stock initial <span class="text-danger">*</span></label>
-                            <input type="number" min="0" step="1" id="quantiteStock" th:field="*{quantiteStock}" class="form-control"
-                                   th:classappend="${#fields.hasErrors('quantiteStock')} ? 'is-invalid'">
-                            <div class="invalid-feedback" th:errors="*{quantiteStock}">Erreur</div>
+                            <label class="form-label">Stock</label>
+                            <input type="text" class="form-control" value="0" disabled>
+                            <div class="form-text">Le stock s'ajoute en enregistrant une livraison.</div>
                         </div>
 
                         <!-- Modification : stock en lecture seule (règle P6) -->
@@ -193,13 +199,6 @@
                                    th:classappend="${#fields.hasErrors('seuilAlerte')} ? 'is-invalid'">
                             <div class="form-text">Une alerte « Stock faible » s'affiche en dessous de ce niveau.</div>
                             <div class="invalid-feedback" th:errors="*{seuilAlerte}">Erreur</div>
-                        </div>
-
-                        <div class="col-12">
-                            <label for="datePeremption" class="form-label">Date de péremption (facultative)</label>
-                            <input type="date" id="datePeremption" th:field="*{datePeremption}" class="form-control"
-                                   th:classappend="${#fields.hasErrors('datePeremption')} ? 'is-invalid'">
-                            <div class="invalid-feedback" th:errors="*{datePeremption}">Erreur</div>
                         </div>
 
                         <!-- Image du produit -->
@@ -271,9 +270,7 @@
             nom: document.getElementById('nom'),
             categorie: document.getElementById('categorieId'),
             prix: document.getElementById('prixVente'),
-            stock: document.getElementById('quantiteStock'),
-            seuil: document.getElementById('seuilAlerte'),
-            peremption: document.getElementById('datePeremption')
+            seuil: document.getElementById('seuilAlerte')
         };
         var stockActuel = document.getElementById('stockActuel');
         var groupeStockInitial = document.getElementById('groupeStockInitial');
@@ -290,7 +287,6 @@
             document.getElementById('btnEnregistrer').textContent = edition ? 'Enregistrer les modifications' : 'Enregistrer';
             groupeStockInitial.classList.toggle('d-none', edition);
             groupeStockActuel.classList.toggle('d-none', !edition);
-            champs.stock.disabled = edition;   // le stock n'est jamais envoyé à la modification
         }
 
         function reinitialiserImage(src, personnalisee) {
@@ -314,9 +310,7 @@
             champs.nom.value = '';
             champs.categorie.value = '';
             champs.prix.value = '';
-            champs.stock.value = modalEl.dataset.stockDefaut || '0';
             champs.seuil.value = modalEl.dataset.seuilDefaut || '5';
-            champs.peremption.value = '';
             reinitialiserImage(imageDefaut, false);
             effacerErreurs();
             modalProduit.show();
@@ -329,7 +323,6 @@
             champs.categorie.value = d.categorie;
             champs.prix.value = d.prix;
             champs.seuil.value = d.seuil;
-            champs.peremption.value = d.peremption || '';
             stockActuel.value = d.stock;
             reinitialiserImage(d.image, d.imagePerso === 'true');
             effacerErreurs();

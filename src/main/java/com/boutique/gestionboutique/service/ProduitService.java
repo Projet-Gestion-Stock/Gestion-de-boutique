@@ -60,9 +60,7 @@ public class ProduitService {
         return new ProduitDTO(
                 p.getNom(),
                 p.getPrixVente(),
-                p.getQuantiteStock(),
                 p.getSeuilAlerte(),
-                p.getDatePeremption(),
                 p.getCategorie().getId());
     }
 
@@ -88,9 +86,8 @@ public class ProduitService {
         Produit p = new Produit();
         p.setNom(form.nom().trim());
         p.setPrixVente(form.prixVente());
-        p.setQuantiteStock(form.quantiteStock() != null ? form.quantiteStock() : 0);
+        p.setQuantiteStock(0);   // règle P6 : le stock ne vient que des livraisons
         p.setSeuilAlerte(form.seuilAlerte());
-        p.setDatePeremption(form.datePeremption());
         p.setCategorie(trouverCategorie(form.categorieId()));
         p.setActif(true);
 
@@ -114,7 +111,6 @@ public class ProduitService {
         p.setNom(form.nom().trim());
         p.setPrixVente(form.prixVente());
         p.setSeuilAlerte(form.seuilAlerte());
-        p.setDatePeremption(form.datePeremption());
         p.setCategorie(trouverCategorie(form.categorieId()));
 
         String ancienneImage = p.getImage();

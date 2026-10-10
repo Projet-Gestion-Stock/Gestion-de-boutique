@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,8 +37,9 @@ public class Livraison {
     @OneToMany(mappedBy = "livraison", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LigneLivraison> lignes = new ArrayList<>();
 
-    public LigneLivraison ajouterLigne(Produit produit, int quantite, BigDecimal prixAchat) {
-        LigneLivraison ligne = new LigneLivraison(this, produit, quantite, prixAchat);
+    /** Ajoute une ligne = un lot, avec sa date de péremption (facultative). */
+    public LigneLivraison ajouterLigne(Produit produit, int quantite, BigDecimal prixAchat, LocalDate datePeremption) {
+        LigneLivraison ligne = new LigneLivraison(this, produit, quantite, prixAchat, datePeremption);
         lignes.add(ligne);
         return ligne;
     }

@@ -2,13 +2,16 @@ package com.boutique.gestionboutique.dto;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
-/** Une ligne de la livraison : un produit, une quantité reçue et le prix d'achat payé au grossiste. */
+/** Une ligne de la livraison = un lot : un produit, une quantité, un prix d'achat et une péremption facultative. */
 public record LigneLivraisonDTO(
 
         @NotNull(message = "Choisissez un produit.")
@@ -22,6 +25,11 @@ public record LigneLivraisonDTO(
         @NotNull(message = "Le prix d'achat est obligatoire.")
         @DecimalMin(value = "0.0", message = "Le prix ne peut pas être négatif.")
         @Digits(integer = 10, fraction = 2, message = "Au plus 2 décimales.")
-        BigDecimal prixAchat
+        BigDecimal prixAchat,
+
+        // Règles LOT1 et LOT2 : facultative, et jamais dans le passé
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        @FutureOrPresent(message = "Un lot déjà périmé ne peut pas être réceptionné.")
+        LocalDate datePeremption
 ) {
 }

@@ -1,8 +1,11 @@
 package com.boutique.gestionboutique.controller;
 
+import com.boutique.gestionboutique.dto.LotDTO;
 import com.boutique.gestionboutique.dto.ProduitDTO;
+import com.boutique.gestionboutique.exception.RegleGestionException;
 import com.boutique.gestionboutique.model.Produit;
 import com.boutique.gestionboutique.service.CategorieService;
+import com.boutique.gestionboutique.service.LotService;
 import com.boutique.gestionboutique.service.ProduitService;
 import com.boutique.gestionboutique.service.StockageImageService;
 import jakarta.validation.Valid;
@@ -20,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.List;
+
 @Controller
 @RequestMapping("/produits")
 public class ProduitController {
@@ -30,15 +35,18 @@ public class ProduitController {
     private final ProduitService produitService;
     private final CategorieService categorieService;
     private final StockageImageService stockageImageService;
+    private final LotService lotService;
     private final String devise;
 
     public ProduitController(ProduitService produitService,
                              CategorieService categorieService,
                              StockageImageService stockageImageService,
+                             LotService lotService,
                              @Value("${app.boutique.devise:}") String devise) {
         this.produitService = produitService;
         this.categorieService = categorieService;
         this.stockageImageService = stockageImageService;
+        this.lotService = lotService;
         this.devise = devise;
     }
 
@@ -116,6 +124,46 @@ public class ProduitController {
         return "redirect:/produits";
     }
 
+    // ---------- Péremptions par lot (ADMIN) ----------
+
+    @GetMapping("/peremptions")
+    public String peremptions(Model model) {
+        List<LotDTO> lots = lotService.lotsAvecPeremption();
+        model.addAttribute("lots", lots);
+        model.addAttribute("nombrePerimes", lots.stream().filter(lot -> lot.joursRestants() < 0).count());
+        model.addAttribute("joursPeremption", JOURS_PEREMPTION_PROCHE);
+        return "produits/peremptions";
+    }
+
+    /** Règle LOT6 : retire du stock les unités d'un lot périmé. */
+    @PostMapping("/{idProduit}/lots/{idLivraison}/retirer")
+    public String retirerLot(@PathVariable Integer idProduit,
+                             @PathVariable Integer idLivraison,
+                             RedirectAttributes redirect) {
+        try {
+            int quantite = lotService.retirer(idLivraison, idProduit);
+            redirect.addFlashAttribute("succes", quantite + " unité(s) périmée(s) retirée(s) du stock.");
+        } catch (RegleGestionException e) {
+            redirect.addFlashAttribute("erreur", e.getMessage());
+        }
+        return "redirect:/produits/peremptions";
+    }
+
+    /** Retire du stock tous les lots périmés (chaque lot est traité dans sa propre transaction). */
+    @PostMapping("/peremptions/retirer-tout")
+    public String retirerTousLesPerimes(RedirectAttributes redirect) {
+        int total = 0;
+        for (LotDTO lot : lotService.lotsPerimes()) {
+            try {
+                total += lotService.retirer(lot.idLivraison(), lot.idProduit());
+            } catch (RegleGestionException e) {
+                // lot déjà traité entre-temps : on passe au suivant
+            }
+        }
+        redirect.addFlashAttribute("succes", total + " unité(s) périmée(s) retirée(s) du stock.");
+        return "redirect:/produits/peremptions";
+    }
+
     // ---------- Outils ----------
 
     private boolean estAdmin(Authentication authentication) {
@@ -131,6 +179,7 @@ public class ProduitController {
         model.addAttribute("joursPeremption", JOURS_PEREMPTION_PROCHE);
         model.addAttribute("devise", devise);
         model.addAttribute("produitVide", ProduitDTO.vide());
+        model.addAttribute("infosPeremption", lotService.infosParProduit());   // règle LOT8
         if (admin) {
             model.addAttribute("categories", categorieService.listerToutes());
         }
@@ -160,10 +209,6 @@ public class ProduitController {
     private void verifierSaisie(ProduitDTO form, BindingResult result, Integer idExclu) {
         if (!result.hasFieldErrors("nom") && produitService.nomDejaUtilise(form.nom(), idExclu)) {
             result.rejectValue("nom", "unique", "Un produit porte déjà ce nom.");
-        }
-        // Règle P6 : le stock initial est obligatoire à la création uniquement
-        if (idExclu == null && !result.hasFieldErrors("quantiteStock") && form.quantiteStock() == null) {
-            result.rejectValue("quantiteStock", "required", "Le stock initial est obligatoire.");
         }
     }
 }

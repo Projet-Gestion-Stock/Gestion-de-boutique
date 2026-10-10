@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{components/layout :: head('Péremptions')}"></head>
+<body>
+
+<nav th:replace="~{components/layout :: navbar}"></nav>
+
+<main class="contenu">
+
+    <!-- En-tête -->
+    <div class="tete-page">
+        <div>
+            <h1 class="tete-page__titre">Péremptions par lot</h1>
+            <p class="tete-page__sous-titre"
+               th:with="n=${#lists.size(lots)}"
+               th:text="|${n} ${n > 1 ? 'lots datés' : 'lot daté'} encore en stock|">12 lots datés encore en stock</p>
+        </div>
+        <div class="tete-page__actions">
+            <a th:href="@{/produits}" class="btn-app">Retour aux produits</a>
+            <form th:if="${nombrePerimes > 0}" th:action="@{/produits/peremptions/retirer-tout}" method="post" class="d-inline"
+                  onsubmit="return confirm('Retirer du stock tous les lots périmés ?');">
+                <button type="submit" class="btn-app btn-app--danger">Retirer tous les périmés</button>
+            </form>
+        </div>
+    </div>
+
+    <div th:replace="~{components/layout :: messages}"></div>
+
+    <section class="panneau">
+        <p class="text-secondary px-3 pt-3 mb-0">
+            Lots datés encore en stock, du plus proche de la péremption au plus lointain. Un lot périmé n'est jamais
+            vendu ; le retirer du stock enlève ses unités du stock du produit.
+        </p>
+
+        <!-- Aucun lot -->
+        <div class="vide" th:if="${#lists.isEmpty(lots)}">
+            <span class="vide__icone"><svg class="ico"><use href="#n-valide"/></svg></span>
+            <span>Aucun lot daté en stock.</span>
+        </div>
+
+        <!-- Liste -->
+        <div class="table-responsive" th:unless="${#lists.isEmpty(lots)}">
+            <table class="tableau-app tableau-app--libre">
+                <thead>
+                <tr>
+                    <th>Produit</th>
+                    <th class="compact">Livraison n°</th>
+                    <th class="compact">Péremption</th>
+                    <th class="droite compact">Unités restantes</th>
+                    <th class="compact">Statut</th>
+                    <th class="droite compact">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="lot : ${lots}">
+                    <td>
+                        <div class="produit">
+                            <img class="miniature" th:src="@{${lot.imageUrl}}" alt="">
+                            <span class="produit__nom" th:text="${lot.produitNom}">Produit</span>
+                        </div>
+                    </td>
+                    <td class="compact nombre">
+                        <a th:href="@{/livraisons/{id}(id=${lot.idLivraison})}" th:text="${lot.idLivraison}">1</a>
+                    </td>
+                    <td class="compact nombre" th:text="${#temporals.format(lot.datePeremption, 'dd/MM/yyyy')}">01/01/2027</td>
+                    <td class="droite compact nombre" th:text="${lot.quantiteRestante}">0</td>
+                    <td class="compact">
+                        <span th:if="${lot.joursRestants < 0}" class="pastille pastille--rouge"
+                              th:text="'Périmé depuis ' + ${lot.joursRestants * -1} + ' j'">Périmé</span>
+                        <span th:if="${lot.joursRestants == 0}" class="pastille pastille--rouge">Périme aujourd'hui</span>
+                        <span th:if="${lot.joursRestants > 0 and lot.joursRestants <= joursPeremption}"
+                              class="pastille pastille--orange" th:text="'Dans ' + ${lot.joursRestants} + ' j'">Bientôt</span>
+                        <span th:if="${lot.joursRestants > joursPeremption}"
+                              class="pastille pastille--gris" th:text="'Dans ' + ${lot.joursRestants} + ' j'">Plus tard</span>
+                    </td>
+                    <td class="droite compact">
+                        <form th:if="${lot.joursRestants < 0}"
+                              th:action="@{/produits/{p}/lots/{l}/retirer(p=${lot.idProduit}, l=${lot.idLivraison})}"
+                              method="post" class="d-inline"
+                              onsubmit="return confirm('Retirer ces unités périmées du stock ?');">
+                            <button type="submit" class="btn-app btn-app--danger">Retirer du stock</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<th:block th:replace="~{components/layout :: scripts}"></th:block>
+</body>
+</html>

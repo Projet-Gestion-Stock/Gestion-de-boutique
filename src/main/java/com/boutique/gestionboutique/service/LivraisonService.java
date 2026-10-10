@@ -102,7 +102,13 @@ public class LivraisonService {
                 throw new RegleGestionException("Le produit « " + produit.getNom()
                         + " » est désactivé : réactivez-le avant de l'inclure dans une livraison.");
             }
-            livraison.ajouterLigne(produit, ligne.quantite(), ligne.prixAchat());
+            // Règle LOT2 (contrôlée aussi ici, indépendamment du formulaire)
+            if (ligne.datePeremption() != null && ligne.datePeremption().isBefore(LocalDate.now())) {
+                throw new RegleGestionException("« " + produit.getNom() + " » : la date de péremption est dépassée, "
+                        + "un lot périmé ne peut pas être réceptionné.");
+            }
+            // Règle LOT1 : la ligne est un lot, avec sa propre date de péremption (facultative)
+            livraison.ajouterLigne(produit, ligne.quantite(), ligne.prixAchat(), ligne.datePeremption());
             // Règle L5 : le stock augmente ; l'entité est suivie par JPA, la mise à jour part avec la transaction
             produit.setQuantiteStock(produit.getQuantiteStock() + ligne.quantite());
         }

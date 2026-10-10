@@ -1,5 +1,6 @@
 package com.boutique.gestionboutique.service;
 
+import com.boutique.gestionboutique.dto.LotDTO;
 import com.boutique.gestionboutique.dto.ProduitVenduDTO;
 import com.boutique.gestionboutique.dto.TableauDeBordDTO;
 import com.boutique.gestionboutique.model.Produit;
@@ -28,13 +29,16 @@ public class DashboardService {
     private final AchatRepository achatRepository;
     private final LigneAchatRepository ligneAchatRepository;
     private final ProduitRepository produitRepository;
+    private final LotService lotService;
 
     public DashboardService(AchatRepository achatRepository,
                             LigneAchatRepository ligneAchatRepository,
-                            ProduitRepository produitRepository) {
+                            ProduitRepository produitRepository,
+                            LotService lotService) {
         this.achatRepository = achatRepository;
         this.ligneAchatRepository = ligneAchatRepository;
         this.produitRepository = produitRepository;
+        this.lotService = lotService;
     }
 
     /** Construit le tableau de bord de l'administrateur (toute la boutique). */
@@ -55,12 +59,11 @@ public class DashboardService {
                 PageRequest.of(0, NOMBRE_PRODUITS_CLASSEMENT));
 
         List<Produit> enAlerte = produitRepository.findProduitsEnAlerte();
-        List<Produit> peremption = produitRepository
-                .findByActifTrueAndDatePeremptionLessThanEqualOrderByDatePeremptionAsc(
-                        aujourdhui.plusDays(JOURS_PEREMPTION_PROCHE));
+        // Règle LOT7 : les alertes de péremption portent sur les LOTS
+        List<LotDTO> lotsPeremption = lotService.lotsAEchoir(JOURS_PEREMPTION_PROCHE);
 
         return new TableauDeBordDTO(nombreVentes, chiffreAffairesJour, chiffreAffairesMois,
-                enAlerte, peremption, classement, periodeJours, JOURS_PEREMPTION_PROCHE);
+                enAlerte, lotsPeremption, classement, periodeJours, JOURS_PEREMPTION_PROCHE);
     }
 
     /** Une somme sans aucune ligne vaut null en base : on la ramène à 0. */
