@@ -194,4 +194,31 @@ public class LivraisonService {
 
         return livraisonRepository.save(livraison);
     }
+
+    /** Toutes les livraisons du filtre (sans pagination), lignes chargées : pour l'export PDF. */
+    @Transactional(readOnly = true)
+    public List<Livraison> listerPourExport(LocalDate du, LocalDate au, Integer grossisteId) {
+        Periode periode = Periode.entre(du, au);
+        List<Livraison> livraisons = grossisteId == null
+                ? livraisonRepository.findByDateLivraisonGreaterThanEqualAndDateLivraisonLessThan(
+                periode.debut(), periode.fin(), TRI)
+                : livraisonRepository.findByDateLivraisonGreaterThanEqualAndDateLivraisonLessThanAndGrossisteId(
+                periode.debut(), periode.fin(), grossisteId, TRI);
+        List<Integer> ids = livraisons.stream().map(Livraison::getId).toList();
+        if (!ids.isEmpty()) {
+            livraisonRepository.chargerLignes(ids);
+        }
+        return livraisons;
+    }
+
+    /** Libellé du filtre « grossiste » pour l'en-tête du PDF. */
+    @Transactional(readOnly = true)
+    public String libelleGrossiste(Integer grossisteId) {
+        if (grossisteId == null) {
+            return "Tous les grossistes";
+        }
+        return grossisteRepository.findById(grossisteId)
+                .map(Grossiste::getNom)
+                .orElse("Inconnu");
+    }
 }

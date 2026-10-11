@@ -5,16 +5,15 @@ import com.boutique.gestionboutique.dto.LivraisonDTO;
 import com.boutique.gestionboutique.dto.ProduitDTO;
 import com.boutique.gestionboutique.exception.RegleGestionException;
 import com.boutique.gestionboutique.model.Livraison;
-import com.boutique.gestionboutique.service.CategorieService;
-import com.boutique.gestionboutique.service.GrossisteService;
-import com.boutique.gestionboutique.service.LivraisonService;
-import com.boutique.gestionboutique.service.ProduitService;
+import com.boutique.gestionboutique.service.*;
 import com.boutique.gestionboutique.util.Filtres;
+import com.boutique.gestionboutique.util.ReponsePdf;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
 import jakarta.validation.Validator;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -30,6 +29,7 @@ import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -44,17 +44,19 @@ public class LivraisonController {
     private final ProduitService produitService;
     private final CategorieService categorieService;
     private final Validator validator;
+    private final ExportPdfService exportPdfService;
 
     public LivraisonController(LivraisonService livraisonService,
                                GrossisteService grossisteService,
                                ProduitService produitService,
                                CategorieService categorieService,
-                               Validator validator) {
+                               Validator validator, ExportPdfService exportPdfService) {
         this.livraisonService = livraisonService;
         this.grossisteService = grossisteService;
         this.produitService = produitService;
         this.categorieService = categorieService;
         this.validator = validator;
+        this.exportPdfService = exportPdfService;
     }
 
     // ---------- Historique ----------
@@ -97,6 +99,24 @@ public class LivraisonController {
         model.addAttribute("il7Jours", aujourdhui.minusDays(6));
         model.addAttribute("debutMois", aujourdhui.withDayOfMonth(1));
         return "livraisons/liste";
+    }
+
+    // ---------- Export PDF de l'historique (mêmes filtres que la liste, sans pagination) ----------
+
+    @GetMapping("/export/pdf")
+    public ResponseEntity<byte[]> exporterPdf(@RequestParam(name = "du", required = false)
+                                              @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate du,
+                                              @RequestParam(name = "au", required = false)
+                                              @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate au,
+                                              @RequestParam(name = "grossisteId", required = false) Integer grossisteId,
+                                              Principal principal) {
+        if (du != null && au != null && du.isAfter(au)) {
+            throw new RegleGestionException("La date de fin doit être postérieure ou égale à la date de début.");
+        }
+        List<Livraison> livraisons = livraisonService.listerPourExport(du, au, grossisteId);
+        byte[] pdf = exportPdfService.historiqueLivraisons(
+                livraisons, du, au, livraisonService.libelleGrossiste(grossisteId), principal.getName());
+        return ReponsePdf.telechargement(pdf, "historique-livraisons");
     }
 
     // ---------- Détail ----------

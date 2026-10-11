@@ -9,7 +9,11 @@
 <main class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="h3 m-0">Historique des achats</h1>
-        <a th:href="@{/achats/nouveau}" class="btn btn-primary">Nouvel achat</a>
+        <div class="d-flex gap-2">
+            <a th:unless="${erreurFiltre}" th:href="@{/achats/export/pdf(format='pdf')} + ${filtresUrl}"
+               class="btn btn-outline-danger">Exporter en PDF</a>
+            <a th:href="@{/achats/nouveau}" class="btn btn-primary">Nouvel achat</a>
+        </div>
     </div>
 
     <div th:replace="~{components/layout :: messages}"></div>

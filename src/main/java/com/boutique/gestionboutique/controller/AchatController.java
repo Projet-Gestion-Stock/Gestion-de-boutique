@@ -4,9 +4,12 @@ import com.boutique.gestionboutique.dto.AchatDTO;
 import com.boutique.gestionboutique.exception.RegleGestionException;
 import com.boutique.gestionboutique.model.Achat;
 import com.boutique.gestionboutique.service.AchatService;
+import com.boutique.gestionboutique.service.ExportPdfService;
 import com.boutique.gestionboutique.service.ProduitService;
+import com.boutique.gestionboutique.util.ReponsePdf;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestParam;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
+import java.util.List;
 
 @Controller
 @RequestMapping("/achats")
@@ -35,19 +39,21 @@ public class AchatController {
     private final String boutiqueAdresse;
     private final String boutiqueTelephone;
     private final String boutiqueDevise;
+    private final ExportPdfService exportPdfService;
 
     public AchatController(AchatService achatService,
                            ProduitService produitService,
                            @Value("${app.boutique.nom:Ma boutique}") String boutiqueNom,
                            @Value("${app.boutique.adresse:}") String boutiqueAdresse,
                            @Value("${app.boutique.telephone:}") String boutiqueTelephone,
-                           @Value("${app.boutique.devise:}") String boutiqueDevise) {
+                           @Value("${app.boutique.devise:}") String boutiqueDevise, ExportPdfService exportPdfService) {
         this.achatService = achatService;
         this.produitService = produitService;
         this.boutiqueNom = boutiqueNom;
         this.boutiqueAdresse = boutiqueAdresse;
         this.boutiqueTelephone = boutiqueTelephone;
         this.boutiqueDevise = boutiqueDevise;
+        this.exportPdfService = exportPdfService;
     }
 
     private static final int TAILLE_PAGE = 15;
@@ -92,6 +98,24 @@ public class AchatController {
         model.addAttribute("il7Jours", aujourdhui.minusDays(6));
         model.addAttribute("debutMois", aujourdhui.withDayOfMonth(1));
         return "achats/liste";
+    }
+
+    // ---------- Export PDF de l'historique (mêmes filtres que la liste, sans pagination) ----------
+
+    @GetMapping("/export/pdf")
+    public ResponseEntity<byte[]> exporterPdf(@RequestParam(name = "du", required = false)
+                                              @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate du,
+                                              @RequestParam(name = "au", required = false)
+                                              @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate au,
+                                              @RequestParam(name = "caissierId", required = false) Integer caissierId,
+                                              Principal principal) {
+        if (du != null && au != null && du.isAfter(au)) {
+            throw new RegleGestionException("La date de fin doit être postérieure ou égale à la date de début.");
+        }
+        List<Achat> achats = achatService.listerPourExport(du, au, caissierId);
+        byte[] pdf = exportPdfService.historiqueAchats(
+                achats, du, au, achatService.libelleCaissier(caissierId), principal.getName());
+        return ReponsePdf.telechargement(pdf, "historique-achats");
     }
 
     // ---------- Détail ----------

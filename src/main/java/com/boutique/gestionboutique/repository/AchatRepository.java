@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Sort;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -48,4 +49,14 @@ public interface AchatRepository extends JpaRepository<Achat, Integer> {
     @EntityGraph(attributePaths = "lignes")
     @Query("select a from Achat a where a.id in :ids")
     List<Achat> chargerLignes(@Param("ids") Collection<Integer> ids);
+
+    // ---------- Export (sans pagination) ----------
+
+    @EntityGraph(attributePaths = "utilisateur")
+    List<Achat> findByDateAchatGreaterThanEqualAndDateAchatLessThan(
+            LocalDateTime debut, LocalDateTime fin, Sort sort);
+
+    @EntityGraph(attributePaths = "utilisateur")
+    List<Achat> findByDateAchatGreaterThanEqualAndDateAchatLessThanAndUtilisateurId(
+            LocalDateTime debut, LocalDateTime fin, Integer idUtilisateur, Sort sort);
 }

@@ -211,4 +211,31 @@ public class AchatService {
     private String videEnNull(String valeur) {
         return (valeur == null || valeur.isBlank()) ? null : valeur.trim();
     }
+
+    /** Tous les achats du filtre (sans pagination), lignes chargées : pour l'export PDF. */
+    @Transactional(readOnly = true)
+    public List<Achat> listerPourExport(LocalDate du, LocalDate au, Integer caissierId) {
+        Periode periode = Periode.entre(du, au);
+        List<Achat> achats = caissierId == null
+                ? achatRepository.findByDateAchatGreaterThanEqualAndDateAchatLessThan(
+                periode.debut(), periode.fin(), TRI)
+                : achatRepository.findByDateAchatGreaterThanEqualAndDateAchatLessThanAndUtilisateurId(
+                periode.debut(), periode.fin(), caissierId, TRI);
+        List<Integer> ids = achats.stream().map(Achat::getId).toList();
+        if (!ids.isEmpty()) {
+            achatRepository.chargerLignes(ids);
+        }
+        return achats;
+    }
+
+    /** Libellé du filtre « caissier » pour l'en-tête du PDF. */
+    @Transactional(readOnly = true)
+    public String libelleCaissier(Integer caissierId) {
+        if (caissierId == null) {
+            return "Tous les caissiers";
+        }
+        return utilisateurRepository.findById(caissierId)
+                .map(Utilisateur::getNomComplet)
+                .orElse("Inconnu");
+    }
 }
