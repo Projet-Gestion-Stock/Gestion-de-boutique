@@ -2,12 +2,19 @@ package com.boutique.gestionboutique.controller;
 
 import com.boutique.gestionboutique.dto.LigneLivraisonDTO;
 import com.boutique.gestionboutique.dto.LivraisonDTO;
+import com.boutique.gestionboutique.dto.ProduitDTO;
 import com.boutique.gestionboutique.exception.RegleGestionException;
 import com.boutique.gestionboutique.model.Livraison;
+import com.boutique.gestionboutique.service.CategorieService;
 import com.boutique.gestionboutique.service.GrossisteService;
 import com.boutique.gestionboutique.service.LivraisonService;
 import com.boutique.gestionboutique.service.ProduitService;
+import com.boutique.gestionboutique.util.Filtres;
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
+import jakarta.validation.Validator;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -16,36 +23,39 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.RequestParam;
-import com.boutique.gestionboutique.util.Filtres;
-import org.springframework.data.domain.Page;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
 import java.security.Principal;
+import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 @Controller
 @RequestMapping("/livraisons")
 public class LivraisonController {
 
+    private static final int TAILLE_PAGE = 15;
+
     private final LivraisonService livraisonService;
     private final GrossisteService grossisteService;
     private final ProduitService produitService;
+    private final CategorieService categorieService;
+    private final Validator validator;
 
     public LivraisonController(LivraisonService livraisonService,
                                GrossisteService grossisteService,
-                               ProduitService produitService) {
+                               ProduitService produitService,
+                               CategorieService categorieService,
+                               Validator validator) {
         this.livraisonService = livraisonService;
         this.grossisteService = grossisteService;
         this.produitService = produitService;
+        this.categorieService = categorieService;
+        this.validator = validator;
     }
-
-    private static final int TAILLE_PAGE = 15;
 
     // ---------- Historique ----------
 
@@ -135,28 +145,60 @@ public class LivraisonController {
         model.addAttribute("grossistes", grossisteService.lister());
         // Règle L4 : seuls les produits actifs sont proposés
         model.addAttribute("produits", produitService.rechercher(null, false));
+        // Solution B : catégories pour les nouveaux produits
+        model.addAttribute("categories", categorieService.listerToutes());
     }
 
-    /** Règle L3 : un produit ne peut figurer qu'une fois ; l'erreur est placée sur la ligne en doublon. */
+    /**
+     * Contrôles dépendant du mode de chaque ligne :
+     * - produit existant : un produit choisi, une seule fois par livraison (règle L3) ;
+     * - nouveau produit : champs valides (règles P1 à P4) et nom unique, en base ET dans la livraison.
+     * Chaque erreur est placée sur le champ de la ligne concernée.
+     */
     private void verifierLignes(LivraisonDTO form, BindingResult result) {
         if (form.lignes() == null) {
             return; // déjà signalé par @NotEmpty
         }
-        Map<Integer, Integer> premiereLigne = new HashMap<>();
+        Map<Integer, Integer> produitsVus = new HashMap<>();
+        Map<String, Integer> nomsVus = new HashMap<>();
+
         for (int i = 0; i < form.lignes().size(); i++) {
             LigneLivraisonDTO ligne = form.lignes().get(i);
             if (ligne == null) {
                 result.reject("ligne.invalide", "Une ligne de la livraison est invalide.");
                 continue;
             }
-            if (ligne.produitId() == null) {
-                continue; // déjà signalé par @NotNull
+            String chemin = "lignes[" + i + "]";
+
+            if (!ligne.nouveau()) {
+                if (ligne.produitId() == null) {
+                    result.rejectValue(chemin + ".produitId", "obligatoire", "Choisissez un produit.");
+                    continue;
+                }
+                Integer dejaVu = produitsVus.putIfAbsent(ligne.produitId(), i);
+                if (dejaVu != null) {
+                    result.rejectValue(chemin + ".produitId", "doublon",
+                            "Ce produit figure déjà à la ligne " + (dejaVu + 1)
+                                    + " : regroupez les quantités sur une seule ligne.");
+                }
+                continue;
             }
-            Integer dejaVu = premiereLigne.putIfAbsent(ligne.produitId(), i);
-            if (dejaVu != null) {
-                result.rejectValue("lignes[" + i + "].produitId", "doublon",
-                        "Ce produit figure déjà à la ligne " + (dejaVu + 1)
-                                + " : regroupez les quantités sur une seule ligne.");
+
+            // Mode « nouveau produit »
+            String base = chemin + ".nouveauProduit.";
+            ProduitDTO np = ligne.nouveauProduit();
+            for (ConstraintViolation<ProduitDTO> v : validator.validate(np)) {
+                result.rejectValue(base + v.getPropertyPath(), "invalide", v.getMessage());
+            }
+            if (np.nom() != null && !np.nom().isBlank() && !result.hasFieldErrors(base + "nom")) {
+                String nom = np.nom().trim();
+                Integer dejaVu = nomsVus.putIfAbsent(nom.toLowerCase(Locale.ROOT), i);
+                if (dejaVu != null) {
+                    result.rejectValue(base + "nom", "doublon",
+                            "Ce nom est déjà utilisé à la ligne " + (dejaVu + 1) + " de cette livraison.");
+                } else if (produitService.nomDejaUtilise(nom, null)) {
+                    result.rejectValue(base + "nom", "unique", "Un produit porte déjà ce nom.");
+                }
             }
         }
     }

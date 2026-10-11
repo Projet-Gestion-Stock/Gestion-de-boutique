@@ -34,25 +34,71 @@
             <table class="table align-middle">
                 <thead>
                 <tr>
-                    <th style="width: 35%">Produit</th>
-                    <th style="width: 14%">Quantité reçue</th>
-                    <th style="width: 19%">Prix d'achat unitaire</th>
-                    <th style="width: 22%">Péremption du lot</th>
-                    <th style="width: 10%"></th>
+                    <th style="width: 40%">Produit</th>
+                    <th style="width: 12%">Quantité reçue</th>
+                    <th style="width: 17%">Prix d'achat unitaire</th>
+                    <th style="width: 20%">Péremption du lot</th>
+                    <th style="width: 11%"></th>
                 </tr>
                 </thead>
                 <tbody id="lignes" th:attr="data-defaut=@{/images/logo-defaut.jpg}">
                 <tr th:each="l, st : *{lignes}" class="ligne">
                     <td>
-                        <div class="d-flex align-items-start gap-2">
-                            <img class="miniature rounded border d-none" alt=""
-                                 style="width:44px;height:44px;object-fit:cover;flex:none;">
-                            <div class="flex-grow-1">
-                                <input type="hidden" th:field="*{lignes[__${st.index}__].produitId}" class="produit-id">
-                                <input type="text" class="form-control produit-saisie"
-                                       placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit"
-                                       th:classappend="${#fields.hasErrors('lignes[__${st.index}__].produitId')} ? 'is-invalid'">
-                                <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].produitId}">Erreur</div>
+                        <select th:field="*{lignes[__${st.index}__].nouveau}"
+                                class="form-select form-select-sm mb-2 mode-ligne" aria-label="Type de produit">
+                            <option value="false">Produit existant</option>
+                            <option value="true">Nouveau produit</option>
+                        </select>
+
+                        <!-- Mode : produit existant -->
+                        <div class="bloc-existant">
+                            <div class="d-flex align-items-start gap-2">
+                                <img class="miniature rounded border d-none" alt=""
+                                     style="width:44px;height:44px;object-fit:cover;flex:none;">
+                                <div class="flex-grow-1">
+                                    <input type="hidden" th:field="*{lignes[__${st.index}__].produitId}" class="produit-id">
+                                    <input type="text" class="form-control produit-saisie"
+                                           placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit"
+                                           th:classappend="${#fields.hasErrors('lignes[__${st.index}__].produitId')} ? 'is-invalid'">
+                                    <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].produitId}">Erreur</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mode : nouveau produit (le stock sera égal à la quantité reçue) -->
+                        <div class="bloc-nouveau d-none">
+                            <input type="text" maxlength="150" class="form-control mb-2"
+                                   placeholder="Nom du nouveau produit" aria-label="Nom du nouveau produit"
+                                   th:field="*{lignes[__${st.index}__].nouveauProduit.nom}"
+                                   th:classappend="${#fields.hasErrors('lignes[__${st.index}__].nouveauProduit.nom')} ? 'is-invalid'">
+                            <div class="invalid-feedback mb-2" th:errors="*{lignes[__${st.index}__].nouveauProduit.nom}">Erreur</div>
+
+                            <select class="form-select mb-2" aria-label="Catégorie"
+                                    th:field="*{lignes[__${st.index}__].nouveauProduit.categorieId}"
+                                    th:classappend="${#fields.hasErrors('lignes[__${st.index}__].nouveauProduit.categorieId')} ? 'is-invalid'">
+                                <option value="">-- Catégorie --</option>
+                                <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.nom}">Catégorie</option>
+                            </select>
+                            <div class="invalid-feedback mb-2" th:errors="*{lignes[__${st.index}__].nouveauProduit.categorieId}">Erreur</div>
+
+                            <div class="row g-2">
+                                <div class="col-7">
+                                    <input type="number" min="0" step="0.01" class="form-control"
+                                           placeholder="Prix de vente" aria-label="Prix de vente"
+                                           th:field="*{lignes[__${st.index}__].nouveauProduit.prixVente}"
+                                           th:classappend="${#fields.hasErrors('lignes[__${st.index}__].nouveauProduit.prixVente')} ? 'is-invalid'">
+                                    <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].nouveauProduit.prixVente}">Erreur</div>
+                                </div>
+                                <div class="col-5">
+                                    <input type="number" min="0" step="1" class="form-control"
+                                           placeholder="Seuil d'alerte" aria-label="Seuil d'alerte"
+                                           th:field="*{lignes[__${st.index}__].nouveauProduit.seuilAlerte}"
+                                           th:classappend="${#fields.hasErrors('lignes[__${st.index}__].nouveauProduit.seuilAlerte')} ? 'is-invalid'">
+                                    <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].nouveauProduit.seuilAlerte}">Erreur</div>
+                                </div>
+                            </div>
+                            <div class="form-text text-danger" th:if="${#lists.isEmpty(categories)}">
+                                Aucune catégorie : créez-en une depuis la page Produits.
                             </div>
                         </div>
                     </td>
@@ -83,7 +129,8 @@
         </div>
         <p class="form-text">
             La date de péremption est propre à ce lot. Laissez-la vide pour un produit qui ne périme pas.
-            Une date déjà dépassée est refusée.
+            Un <strong>nouveau produit</strong> est créé à l'enregistrement, avec un stock égal à la quantité reçue ;
+            son image s'ajoute ensuite depuis la page Produits.
         </p>
 
         <!-- Catalogue des produits (lu par le script, jamais affiché) -->
@@ -101,13 +148,47 @@
         <template id="modeleLigne">
             <tr class="ligne">
                 <td>
-                    <div class="d-flex align-items-start gap-2">
-                        <img class="miniature rounded border d-none" alt=""
-                             style="width:44px;height:44px;object-fit:cover;flex:none;">
-                        <div class="flex-grow-1">
-                            <input type="hidden" name="lignes[__INDEX__].produitId" class="produit-id">
-                            <input type="text" class="form-control produit-saisie"
-                                   placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit">
+                    <select name="lignes[__INDEX__].nouveau"
+                            class="form-select form-select-sm mb-2 mode-ligne" aria-label="Type de produit">
+                        <option value="false" selected>Produit existant</option>
+                        <option value="true">Nouveau produit</option>
+                    </select>
+
+                    <div class="bloc-existant">
+                        <div class="d-flex align-items-start gap-2">
+                            <img class="miniature rounded border d-none" alt=""
+                                 style="width:44px;height:44px;object-fit:cover;flex:none;">
+                            <div class="flex-grow-1">
+                                <input type="hidden" name="lignes[__INDEX__].produitId" class="produit-id">
+                                <input type="text" class="form-control produit-saisie"
+                                       placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bloc-nouveau d-none">
+                        <input type="text" maxlength="150" class="form-control mb-2"
+                               name="lignes[__INDEX__].nouveauProduit.nom"
+                               placeholder="Nom du nouveau produit" aria-label="Nom du nouveau produit">
+                        <select class="form-select mb-2" name="lignes[__INDEX__].nouveauProduit.categorieId"
+                                aria-label="Catégorie">
+                            <option value="">-- Catégorie --</option>
+                            <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.nom}">Catégorie</option>
+                        </select>
+                        <div class="row g-2">
+                            <div class="col-7">
+                                <input type="number" min="0" step="0.01" class="form-control"
+                                       name="lignes[__INDEX__].nouveauProduit.prixVente"
+                                       placeholder="Prix de vente" aria-label="Prix de vente">
+                            </div>
+                            <div class="col-5">
+                                <input type="number" min="0" step="1" class="form-control" value="5"
+                                       name="lignes[__INDEX__].nouveauProduit.seuilAlerte"
+                                       placeholder="Seuil d'alerte" aria-label="Seuil d'alerte">
+                            </div>
+                        </div>
+                        <div class="form-text text-danger" th:if="${#lists.isEmpty(categories)}">
+                            Aucune catégorie : créez-en une depuis la page Produits.
                         </div>
                     </div>
                 </td>
@@ -168,9 +249,24 @@
         function renumeroter() {
             corps.querySelectorAll('tr.ligne').forEach(function (tr, i) {
                 tr.querySelectorAll('select, input').forEach(function (champ) {
-                    champ.name = champ.name.replace(/lignes\[\d+\]/, 'lignes[' + i + ']');
+                    if (champ.name) {
+                        champ.name = champ.name.replace(/lignes\[\d+\]/, 'lignes[' + i + ']');
+                    }
                 });
             });
+        }
+
+        // Mode de la ligne : « produit existant » ou « nouveau produit ».
+        // Les champs du mode inactif sont désactivés : ils ne sont donc pas envoyés au serveur.
+        function appliquerMode(tr) {
+            var nouveau = tr.querySelector('.mode-ligne').value === 'true';
+            var existant = tr.querySelector('.bloc-existant');
+            var neuf = tr.querySelector('.bloc-nouveau');
+            existant.classList.toggle('d-none', nouveau);
+            neuf.classList.toggle('d-none', !nouveau);
+            existant.querySelectorAll('input').forEach(function (c) { c.disabled = nouveau; });
+            neuf.querySelectorAll('input, select').forEach(function (c) { c.disabled = !nouveau; });
+            fermer();
         }
 
         // Miniature du produit choisi sur la ligne (masquée tant qu'aucun produit n'est choisi)
@@ -297,6 +393,16 @@
 
         function estSaisie(el) { return el.classList && el.classList.contains('produit-saisie'); }
 
+        // --- Changement de mode d'une ligne ---
+        corps.addEventListener('change', function (e) {
+            if (!e.target.classList.contains('mode-ligne')) { return; }
+            var tr = e.target.closest('tr.ligne');
+            appliquerMode(tr);
+            var cible = tr.querySelector(e.target.value === 'true'
+                ? '.bloc-nouveau input[type=text]' : '.produit-saisie');
+            if (cible) { cible.focus(); }
+        });
+
         // --- Événements du champ de saisie (délégués sur le tableau) ---
         corps.addEventListener('focusin', function (e) {
             if (estSaisie(e.target)) { afficher(e.target); }
@@ -348,7 +454,9 @@
         document.getElementById('ajouterLigne').addEventListener('click', function () {
             var index = corps.querySelectorAll('tr.ligne').length;
             corps.insertAdjacentHTML('beforeend', modele.innerHTML.replace(/__INDEX__/g, index));
-            corps.lastElementChild.querySelector('.produit-saisie').focus();
+            var tr = corps.lastElementChild;
+            appliquerMode(tr);
+            tr.querySelector('.produit-saisie').focus();
         });
 
         corps.addEventListener('click', function (e) {
@@ -359,11 +467,12 @@
             renumeroter();
         });
 
-        // Après une erreur de validation, réaffiche le nom et la miniature du produit déjà choisi
+        // Après une erreur de validation : réaffiche le mode, le nom et la miniature de chaque ligne
         corps.querySelectorAll('tr.ligne').forEach(function (tr) {
             var p = parId[tr.querySelector('.produit-id').value];
             if (p) { tr.querySelector('.produit-saisie').value = p.nom; }
             majMiniature(tr);
+            appliquerMode(tr);
         });
     })();
 </script>

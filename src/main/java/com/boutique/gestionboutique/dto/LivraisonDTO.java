@@ -19,6 +19,6 @@ public record LivraisonDTO(
 
     /** Formulaire vide avec une première ligne (quantité 1). */
     public static LivraisonDTO vide() {
-        return new LivraisonDTO(null, List.of(new LigneLivraisonDTO(null, 1, null, null)));
+        return new LivraisonDTO(null, List.of(new LigneLivraisonDTO(false, null, null, 1, null, null)));
     }
 }

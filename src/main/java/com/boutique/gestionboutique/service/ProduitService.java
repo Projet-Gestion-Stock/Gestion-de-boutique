@@ -81,26 +81,22 @@ public class ProduitService {
     // ---------- Écriture ----------
 
     /** image = fichier envoyé (peut être null ou vide : le produit utilisera alors l'image par défaut). */
+    /**
+     * Crée un produit depuis une ligne de livraison (solution B). Règle P6 : le stock démarre à 0 ;
+     * c'est la livraison qui l'augmente. Pas d'image à la création (elle s'ajoute depuis la page Produits).
+     * S'exécute dans la transaction de la livraison : si la livraison échoue, le produit n'est pas créé.
+     */
     @Transactional
-    public Produit creer(ProduitDTO form, MultipartFile image) {
+    public Produit creerPourLivraison(ProduitDTO form) {
         Produit p = new Produit();
         p.setNom(form.nom().trim());
         p.setPrixVente(form.prixVente());
-        p.setQuantiteStock(0);   // règle P6 : le stock ne vient que des livraisons
+        p.setQuantiteStock(0);
         p.setSeuilAlerte(form.seuilAlerte());
         p.setCategorie(trouverCategorie(form.categorieId()));
         p.setActif(true);
-
-        String nouvelleImage = stockageImageService.enregistrer(image);
-        p.setImage(nouvelleImage);
-        try {
-            return produitRepository.save(p);
-        } catch (RuntimeException e) {
-            stockageImageService.supprimer(nouvelleImage); // pas de fichier orphelin
-            throw e;
-        }
+        return produitRepository.save(p);
     }
-
     /**
      * Règle P6 : le stock n'est JAMAIS modifié ici (il varie par les livraisons et les achats).
      * Image : un nouveau fichier remplace l'ancien ; supprimerImage = true revient à l'image par défaut.

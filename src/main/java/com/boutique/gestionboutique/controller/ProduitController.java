@@ -62,28 +62,6 @@ public class ProduitController {
         return "produits/liste";
     }
 
-    // ---------- Création (ADMIN) : la fenêtre se rouvre si le formulaire est refusé ----------
-
-    @PostMapping
-    public String creer(@Valid @ModelAttribute("produitForm") ProduitDTO form,
-                        BindingResult result,
-                        @RequestParam(name = "imageFichier", required = false) MultipartFile imageFichier,
-                        Authentication authentication,
-                        Model model,
-                        RedirectAttributes redirect) {
-        verifierSaisie(form, result, null);
-        String erreurImage = stockageImageService.verifier(imageFichier);
-        if (result.hasErrors() || erreurImage != null) {
-            model.addAttribute("erreurImage", erreurImage);
-            preparerListe(model, authentication, null);
-            preparerEtatFormulaire(model, null, true);
-            return "produits/liste";
-        }
-        produitService.creer(form, imageFichier);
-        redirect.addFlashAttribute("succes", "Produit « " + form.nom().trim() + " » ajouté.");
-        return "redirect:/produits";
-    }
-
     // ---------- Modification (ADMIN) ----------
 
     @PostMapping("/{id}")

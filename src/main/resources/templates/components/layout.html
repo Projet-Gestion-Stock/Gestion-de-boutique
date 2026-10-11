@@ -56,14 +56,10 @@
                 <svg class="ico"><use href="#n-panier"/></svg>Nouvel achat</a>
             <a th:href="@{/achats}">
                 <svg class="ico"><use href="#n-achats"/></svg>Achats</a>
-            <a th:href="@{/produits}">
+            <a th:href="@{/produits}" th:attr="data-aussi=@{/categories}">
                 <svg class="ico"><use href="#n-produits"/></svg>Produits</a>
-            <a th:href="@{/categories}" sec:authorize="hasRole('ADMIN')">
-                <svg class="ico"><use href="#n-categories"/></svg>Catégories</a>
-            <a th:href="@{/grossistes}" sec:authorize="hasRole('ADMIN')">
-                <svg class="ico"><use href="#n-grossistes"/></svg>Grossistes</a>
-            <a th:href="@{/livraisons}" sec:authorize="hasRole('ADMIN')">
-                <svg class="ico"><use href="#n-livraison"/></svg>Livraisons</a>
+            <a th:href="@{/livraisons}" th:attr="data-aussi=@{/grossistes}" sec:authorize="hasRole('ADMIN')">
+                <svg class="ico"><use href="#n-livraison"/></svg>Approvisionnement</a>
             <a th:href="@{/utilisateurs}" sec:authorize="hasRole('ADMIN')">
                 <svg class="ico"><use href="#n-utilisateurs"/></svg>Utilisateurs</a>
             <a th:href="@{/profil}">
@@ -115,10 +111,14 @@
             var chemin = location.pathname.replace(/\/+$/, '') || '/';
             var actif = null, longueur = -1;
             menu.querySelectorAll('.app-nav a').forEach(function (lien) {
-                var cible = (lien.getAttribute('href') || '').split('?')[0].replace(/\/+$/, '') || '/';
-                var correspond = cible === '/' ? chemin === '/'
-                    : (chemin === cible || chemin.indexOf(cible + '/') === 0);
-                if (correspond && cible.length > longueur) { actif = lien; longueur = cible.length; }
+                var cibles = [lien.getAttribute('href') || ''];
+                if (lien.dataset.aussi) { cibles.push(lien.dataset.aussi); }   // pages rattachées à cet onglet
+                cibles.forEach(function (brut) {
+                    var cible = brut.split('?')[0].replace(/\/+$/, '') || '/';
+                    var correspond = cible === '/' ? chemin === '/'
+                        : (chemin === cible || chemin.indexOf(cible + '/') === 0);
+                    if (correspond && cible.length > longueur) { actif = lien; longueur = cible.length; }
+                });
             });
             if (actif) { actif.classList.add('actif'); actif.setAttribute('aria-current', 'page'); }
 

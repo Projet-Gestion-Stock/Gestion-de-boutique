@@ -34,8 +34,11 @@ public class SecurityConfig {
                         .requestMatchers("/grossistes/**", "/livraisons/**").hasRole("ADMIN")
 
                         // Produits : l'ORDRE compte (la première règle qui correspond s'applique)
-                        // 1) formulaires d'ajout et de modification : ADMIN
-                        .requestMatchers("/produits/nouveau", "/produits/*/modifier").hasRole("ADMIN")
+                        // 1) liste et recherche : ADMIN et CAISSIER (lecture seule)
+                        .requestMatchers(HttpMethod.GET, "/produits").hasAnyRole("ADMIN", "CAISSIER")
+                        // 2) tout le reste (modification, activation, péremptions) : ADMIN
+                        // (il n'y a plus de création de produit ici : elle se fait par la livraison)
+                        .requestMatchers("/produits/**").hasRole("ADMIN")
                         // 2) liste et recherche : ADMIN et CAISSIER (lecture seule)
                         .requestMatchers(HttpMethod.GET, "/produits").hasAnyRole("ADMIN", "CAISSIER")
                         // 3) tout le reste (création, modification, activation) : ADMIN

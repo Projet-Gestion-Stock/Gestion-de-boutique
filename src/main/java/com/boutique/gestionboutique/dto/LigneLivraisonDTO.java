@@ -11,11 +11,21 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/** Une ligne de la livraison = un lot : un produit, une quantité, un prix d'achat et une péremption facultative. */
+/**
+ * Une ligne de la livraison = un lot. Deux modes :
+ * - produit existant (nouveau = false) : produitId est obligatoire ;
+ * - nouveau produit (nouveau = true) : le bloc nouveauProduit est obligatoire, produitId est ignoré.
+ * Dans les deux cas : quantité, prix d'achat et péremption (facultative) du lot.
+ * Le contrôle du mode (produitId ou nouveauProduit) est fait dans LivraisonController, car il dépend du mode.
+ */
 public record LigneLivraisonDTO(
 
-        @NotNull(message = "Choisissez un produit.")
+        boolean nouveau,
+
         Integer produitId,
+
+        /** Jamais null (voir le constructeur) : le formulaire peut ainsi toujours lire ses champs. */
+        ProduitDTO nouveauProduit,
 
         @NotNull(message = "La quantité est obligatoire.")
         @Min(value = 1, message = "La quantité doit être d'au moins 1.")
@@ -32,4 +42,10 @@ public record LigneLivraisonDTO(
         @FutureOrPresent(message = "Un lot déjà périmé ne peut pas être réceptionné.")
         LocalDate datePeremption
 ) {
+
+        public LigneLivraisonDTO {
+                if (nouveauProduit == null) {
+                        nouveauProduit = ProduitDTO.vide();
+                }
+        }
 }

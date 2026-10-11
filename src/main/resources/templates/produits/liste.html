@@ -27,12 +27,12 @@
                th:text="${#strings.isEmpty(q)} ? |${n} ${n > 1 ? 'produits' : 'produit'} au catalogue| : |${n} ${n > 1 ? 'résultats' : 'résultat'} pour « ${q} »|">42 produits au catalogue</p>
         </div>
         <div class="tete-page__actions" sec:authorize="hasRole('ADMIN')">
+            <a th:href="@{/categories}" class="btn-app">
+                <svg class="ico"><use href="#n-categories"/></svg>Gérer les catégories
+            </a>
             <a th:href="@{/produits/peremptions}" class="btn-app">
                 <svg class="ico"><use href="#n-alerte"/></svg>Péremptions
             </a>
-            <button type="button" class="btn-app btn-app--primaire" id="btnAjouter">
-                <svg class="ico"><use href="#n-plus"/></svg>Ajouter un produit
-            </button>
         </div>
     </div>
 
@@ -142,8 +142,7 @@
                   method="post" enctype="multipart/form-data" novalidate>
 
                 <div class="modal-header">
-                    <h2 class="modal-title" id="modalProduitTitre"
-                        th:text="${edition} ? 'Modifier le produit' : 'Ajouter un produit'">Ajouter un produit</h2>
+                    <h2 class="modal-title" id="modalProduitTitre">Modifier le produit</h2>
                     <button type="button" class="btn-icone" data-bs-dismiss="modal" aria-label="Fermer">
                         <svg class="ico"><use href="#p-fermer"/></svg>
                     </button>
@@ -179,15 +178,8 @@
                             </div>
                         </div>
 
-                        <!-- Création : aucun stock saisi (règle P6) -->
-                        <div class="col-md-6" id="groupeStockInitial">
-                            <label class="form-label">Stock</label>
-                            <input type="text" class="form-control" value="0" disabled>
-                            <div class="form-text">Le stock s'ajoute en enregistrant une livraison.</div>
-                        </div>
-
-                        <!-- Modification : stock en lecture seule (règle P6) -->
-                        <div class="col-md-6 d-none" id="groupeStockActuel">
+                        <!-- Stock en lecture seule (règle P6) -->
+                        <div class="col-md-6">
                             <label for="stockActuel" class="form-label">Stock actuel</label>
                             <input type="text" id="stockActuel" class="form-control" th:value="${stockActuel}" disabled>
                             <div class="form-text">Modifié uniquement par les livraisons et les achats.</div>
@@ -263,7 +255,7 @@
         var modalEl = document.getElementById('modalProduit');
         var form = document.getElementById('formProduit');
         var modalProduit = bootstrap.Modal.getOrCreateInstance(modalEl);
-        var urlCreation = form.dataset.actionCreation;
+        var urlBase = form.dataset.actionCreation;   // « /produits »
         var imageDefaut = modalEl.dataset.imageDefaut;
 
         var champs = {
@@ -273,21 +265,11 @@
             seuil: document.getElementById('seuilAlerte')
         };
         var stockActuel = document.getElementById('stockActuel');
-        var groupeStockInitial = document.getElementById('groupeStockInitial');
-        var groupeStockActuel = document.getElementById('groupeStockActuel');
         var apercu = document.getElementById('apercu');
         var fichier = document.getElementById('imageFichier');
         var supprimer = document.getElementById('supprimerImage');
         var groupeSupprimer = document.getElementById('groupeSupprimerImage');
         var libelleChoix = document.getElementById('libelleChoixImage');
-
-        // Création ou modification : titre, bouton, champ de stock
-        function appliquerMode(edition) {
-            document.getElementById('modalProduitTitre').textContent = edition ? 'Modifier le produit' : 'Ajouter un produit';
-            document.getElementById('btnEnregistrer').textContent = edition ? 'Enregistrer les modifications' : 'Enregistrer';
-            groupeStockInitial.classList.toggle('d-none', edition);
-            groupeStockActuel.classList.toggle('d-none', !edition);
-        }
 
         function reinitialiserImage(src, personnalisee) {
             apercu.src = src;
@@ -304,21 +286,8 @@
             if (erreurImage) { erreurImage.remove(); }
         }
 
-        function ouvrirCreation() {
-            appliquerMode(false);
-            form.action = urlCreation;
-            champs.nom.value = '';
-            champs.categorie.value = '';
-            champs.prix.value = '';
-            champs.seuil.value = modalEl.dataset.seuilDefaut || '5';
-            reinitialiserImage(imageDefaut, false);
-            effacerErreurs();
-            modalProduit.show();
-        }
-
         function ouvrirModification(d) {
-            appliquerMode(true);
-            form.action = urlCreation + '/' + d.id;
+            form.action = urlBase + '/' + d.id;
             champs.nom.value = d.nom;
             champs.categorie.value = d.categorie;
             champs.prix.value = d.prix;
@@ -347,8 +316,6 @@
         var formDesactiver = document.getElementById('formDesactiver');
         var baseDesactiver = formDesactiver.getAttribute('action');
 
-        document.getElementById('btnAjouter').addEventListener('click', ouvrirCreation);
-
         document.addEventListener('click', function (e) {
             var modifier = e.target.closest('.btn-modifier');
             if (modifier) { ouvrirModification(modifier.dataset); return; }
@@ -362,10 +329,8 @@
 
         // Après un refus du serveur : la fenêtre se rouvre avec les messages d'erreur
         if (modalEl.dataset.ouvrir === 'true') {
-            var edition = modalEl.dataset.mode === 'edition';
-            appliquerMode(edition);
             apercu.dataset.origine = apercu.getAttribute('src');
-            var personnalisee = edition && modalEl.dataset.imagePerso === 'true';
+            var personnalisee = modalEl.dataset.imagePerso === 'true';
             groupeSupprimer.classList.toggle('d-none', !personnalisee);
             libelleChoix.textContent = personnalisee ? "Changer l'image" : 'Choisir une image';
             modalProduit.show();

@@ -2,6 +2,7 @@ package com.boutique.gestionboutique.service;
 
 import com.boutique.gestionboutique.dto.LigneLivraisonDTO;
 import com.boutique.gestionboutique.dto.LivraisonDTO;
+import com.boutique.gestionboutique.dto.ProduitDTO;
 import com.boutique.gestionboutique.exception.RegleGestionException;
 import com.boutique.gestionboutique.exception.RessourceIntrouvableException;
 import com.boutique.gestionboutique.model.Grossiste;
@@ -9,22 +10,26 @@ import com.boutique.gestionboutique.model.Livraison;
 import com.boutique.gestionboutique.model.Produit;
 import com.boutique.gestionboutique.model.Utilisateur;
 import com.boutique.gestionboutique.repository.GrossisteRepository;
+import com.boutique.gestionboutique.repository.LigneLivraisonRepository;
 import com.boutique.gestionboutique.repository.LivraisonRepository;
 import com.boutique.gestionboutique.repository.ProduitRepository;
 import com.boutique.gestionboutique.repository.UtilisateurRepository;
 import com.boutique.gestionboutique.util.Periode;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import com.boutique.gestionboutique.repository.LigneLivraisonRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import java.math.BigDecimal;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -38,17 +43,20 @@ public class LivraisonService {
     private final GrossisteRepository grossisteRepository;
     private final ProduitRepository produitRepository;
     private final UtilisateurRepository utilisateurRepository;
+    private final ProduitService produitService;
 
     public LivraisonService(LivraisonRepository livraisonRepository,
                             LigneLivraisonRepository ligneLivraisonRepository,
                             GrossisteRepository grossisteRepository,
                             ProduitRepository produitRepository,
-                            UtilisateurRepository utilisateurRepository) {
+                            UtilisateurRepository utilisateurRepository,
+                            ProduitService produitService) {
         this.livraisonRepository = livraisonRepository;
         this.ligneLivraisonRepository = ligneLivraisonRepository;
         this.grossisteRepository = grossisteRepository;
         this.produitRepository = produitRepository;
         this.utilisateurRepository = utilisateurRepository;
+        this.produitService = produitService;
     }
 
     // ---------- Consultation ----------
@@ -69,7 +77,6 @@ public class LivraisonService {
     public Page<Livraison> rechercher(LocalDate du, LocalDate au, Integer grossisteId, int page, int taille) {
         Periode periode = Periode.entre(du, au);
         Page<Livraison> resultat = chercherPage(periode, grossisteId, PageRequest.of(Math.max(page, 1) - 1, taille, TRI));
-        // Page demandée au-delà de la dernière : on affiche la dernière
         if (resultat.getTotalPages() > 0 && resultat.getNumber() >= resultat.getTotalPages()) {
             resultat = chercherPage(periode, grossisteId, PageRequest.of(resultat.getTotalPages() - 1, taille, TRI));
         }
@@ -101,17 +108,46 @@ public class LivraisonService {
     // ---------- Enregistrement ----------
 
     /**
-     * Enregistre une livraison et AUGMENTE le stock de chaque produit livré, en une seule transaction.
-     * Les produits concernés sont verrouillés jusqu'à la fin de l'opération.
+     * Enregistre une livraison en une seule transaction : création des nouveaux produits (stock = quantité livrée),
+     * création de la livraison et de ses lignes, augmentation du stock des produits existants.
+     * Si une ligne échoue, rien n'est enregistré (pas même les nouveaux produits).
      */
     @Transactional
     public Livraison enregistrer(LivraisonDTO form, String identifiantUtilisateur) {
         List<LigneLivraisonDTO> lignes = form.lignes();
 
-        // Règle L3 (contrôlée aussi ici, indépendamment du formulaire)
-        List<Integer> ids = lignes.stream().map(LigneLivraisonDTO::produitId).toList();
+        // Lignes « produit existant » : règle L3 (contrôlée aussi ici, indépendamment du formulaire)
+        List<Integer> ids = new ArrayList<>();
+        for (LigneLivraisonDTO ligne : lignes) {
+            if (!ligne.nouveau()) {
+                if (ligne.produitId() == null) {
+                    throw new RegleGestionException("Choisissez un produit pour chaque ligne.");
+                }
+                ids.add(ligne.produitId());
+            }
+        }
         if (ids.stream().distinct().count() != ids.size()) {
             throw new RegleGestionException("Un produit ne peut figurer qu'une seule fois dans une livraison.");
+        }
+
+        // Lignes « nouveau produit » : nom unique en base (P1) ET entre les lignes de la livraison
+        Set<String> nomsVus = new HashSet<>();
+        for (LigneLivraisonDTO ligne : lignes) {
+            if (!ligne.nouveau()) {
+                continue;
+            }
+            ProduitDTO np = ligne.nouveauProduit();
+            if (np.nom() == null || np.nom().isBlank() || np.prixVente() == null
+                    || np.seuilAlerte() == null || np.categorieId() == null) {
+                throw new RegleGestionException("Un nouveau produit est incomplet : nom, catégorie, prix de vente et seuil sont obligatoires.");
+            }
+            String nom = np.nom().trim();
+            if (!nomsVus.add(nom.toLowerCase(Locale.ROOT))) {
+                throw new RegleGestionException("Le nom « " + nom + " » apparaît deux fois dans cette livraison.");
+            }
+            if (produitService.nomDejaUtilise(nom, null)) {
+                throw new RegleGestionException("Un produit porte déjà le nom « " + nom + " ».");
+            }
         }
 
         Grossiste grossiste = grossisteRepository.findById(form.grossisteId())
@@ -119,7 +155,10 @@ public class LivraisonService {
         Utilisateur utilisateur = utilisateurRepository.findByIdentifiant(identifiantUtilisateur)
                 .orElseThrow(() -> new RessourceIntrouvableException("Utilisateur introuvable : " + identifiantUtilisateur));
 
-        Map<Integer, Produit> produits = produitRepository.findAllByIdForUpdate(ids).stream()
+        // Produits existants verrouillés jusqu'à la fin de la transaction
+        Map<Integer, Produit> produits = ids.isEmpty()
+                ? Map.of()
+                : produitRepository.findAllByIdForUpdate(ids).stream()
                 .collect(Collectors.toMap(Produit::getId, Function.identity()));
 
         Livraison livraison = new Livraison();
@@ -127,14 +166,20 @@ public class LivraisonService {
         livraison.setUtilisateur(utilisateur);
 
         for (LigneLivraisonDTO ligne : lignes) {
-            Produit produit = produits.get(ligne.produitId());
-            if (produit == null) {
-                throw new RegleGestionException("Produit introuvable : " + ligne.produitId());
-            }
-            // Règle L4
-            if (!produit.isActif()) {
-                throw new RegleGestionException("Le produit « " + produit.getNom()
-                        + " » est désactivé : réactivez-le avant de l'inclure dans une livraison.");
+            Produit produit;
+            if (ligne.nouveau()) {
+                // Règle P6 : le produit naît avec un stock de 0, la livraison l'augmente juste après
+                produit = produitService.creerPourLivraison(ligne.nouveauProduit());
+            } else {
+                produit = produits.get(ligne.produitId());
+                if (produit == null) {
+                    throw new RegleGestionException("Produit introuvable : " + ligne.produitId());
+                }
+                // Règle L4
+                if (!produit.isActif()) {
+                    throw new RegleGestionException("Le produit « " + produit.getNom()
+                            + " » est désactivé : réactivez-le avant de l'inclure dans une livraison.");
+                }
             }
             // Règle LOT2 (contrôlée aussi ici, indépendamment du formulaire)
             if (ligne.datePeremption() != null && ligne.datePeremption().isBefore(LocalDate.now())) {
