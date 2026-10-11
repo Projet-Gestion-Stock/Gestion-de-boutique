@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:replace="~{components/layout :: head('Livraisons')}"></head>
+<head th:replace="~{components/layout :: head('Approvisionnement')}"></head>
 <body>
 
 <nav th:replace="~{components/layout :: navbar}"></nav>
 
 <main class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 m-0">Livraisons des grossistes</h1>
-        <a th:href="@{/livraisons/nouvelle}" class="btn btn-primary">Enregistrer une livraison</a>
+        <h1 class="h3 m-0">Approvisionnement</h1>
+        <div class="d-flex gap-2">
+            <a th:href="@{/grossistes}" class="btn btn-outline-secondary">Gérer les grossistes</a>
+            <a th:href="@{/livraisons/nouvelle}" class="btn btn-primary">Enregistrer une livraison</a>
+        </div>
     </div>
 
     <div th:replace="~{components/layout :: messages}"></div>
@@ -49,7 +52,7 @@
     <div th:if="${erreurFiltre}" class="alert alert-warning" th:text="${erreurFiltre}"></div>
 
     <p class="text-muted" th:unless="${erreurFiltre}">
-        <strong th:text="${#lists.size(livraisons)}">0</strong> livraison(s)
+        <strong th:text="${pagination.totalElements}">0</strong> livraison(s)
         <span th:if="${filtreActif}">correspondant au filtre</span>
         · Coût d'achat total : <strong th:text="${#numbers.formatDecimal(totalAffiche, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</strong>
     </p>
@@ -86,6 +89,9 @@
             </tbody>
         </table>
     </div>
+
+    <div th:replace="~{components/pagination :: pagination(${pagination}, '/livraisons', ${filtresUrl})}"></div>
+
 </main>
 
 <th:block th:replace="~{components/layout :: scripts}"></th:block>

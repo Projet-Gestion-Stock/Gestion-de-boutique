@@ -15,6 +15,12 @@ import com.boutique.gestionboutique.repository.UtilisateurRepository;
 import com.boutique.gestionboutique.util.Periode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.boutique.gestionboutique.repository.LigneLivraisonRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import java.math.BigDecimal;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -25,16 +31,21 @@ import java.util.stream.Collectors;
 @Service
 public class LivraisonService {
 
+    private static final Sort TRI = Sort.by(Sort.Order.desc("dateLivraison"), Sort.Order.desc("id"));
+
     private final LivraisonRepository livraisonRepository;
+    private final LigneLivraisonRepository ligneLivraisonRepository;
     private final GrossisteRepository grossisteRepository;
     private final ProduitRepository produitRepository;
     private final UtilisateurRepository utilisateurRepository;
 
     public LivraisonService(LivraisonRepository livraisonRepository,
+                            LigneLivraisonRepository ligneLivraisonRepository,
                             GrossisteRepository grossisteRepository,
                             ProduitRepository produitRepository,
                             UtilisateurRepository utilisateurRepository) {
         this.livraisonRepository = livraisonRepository;
+        this.ligneLivraisonRepository = ligneLivraisonRepository;
         this.grossisteRepository = grossisteRepository;
         this.produitRepository = produitRepository;
         this.utilisateurRepository = utilisateurRepository;
@@ -53,15 +64,38 @@ public class LivraisonService {
                 .orElseThrow(() -> new RessourceIntrouvableException("Livraison introuvable : " + id));
     }
 
-    /** Historique filtré : période (bornes facultatives, jours inclus) et grossiste facultatif. */
+    /** Historique filtré et paginé : période (bornes facultatives, jours inclus) et grossiste facultatif. Page 1 = première. */
     @Transactional(readOnly = true)
-    public List<Livraison> rechercher(LocalDate du, LocalDate au, Integer grossisteId) {
+    public Page<Livraison> rechercher(LocalDate du, LocalDate au, Integer grossisteId, int page, int taille) {
         Periode periode = Periode.entre(du, au);
+        Page<Livraison> resultat = chercherPage(periode, grossisteId, PageRequest.of(Math.max(page, 1) - 1, taille, TRI));
+        // Page demandée au-delà de la dernière : on affiche la dernière
+        if (resultat.getTotalPages() > 0 && resultat.getNumber() >= resultat.getTotalPages()) {
+            resultat = chercherPage(periode, grossisteId, PageRequest.of(resultat.getTotalPages() - 1, taille, TRI));
+        }
+        List<Integer> ids = resultat.getContent().stream().map(Livraison::getId).toList();
+        if (!ids.isEmpty()) {
+            livraisonRepository.chargerLignes(ids);   // initialise les lignes des livraisons de la page
+        }
+        return resultat;
+    }
+
+    private Page<Livraison> chercherPage(Periode periode, Integer grossisteId, Pageable pageable) {
         return grossisteId == null
-                ? livraisonRepository.findByDateLivraisonGreaterThanEqualAndDateLivraisonLessThanOrderByDateLivraisonDesc(
-                periode.debut(), periode.fin())
-                : livraisonRepository.findByDateLivraisonGreaterThanEqualAndDateLivraisonLessThanAndGrossisteIdOrderByDateLivraisonDesc(
-                periode.debut(), periode.fin(), grossisteId);
+                ? livraisonRepository.findByDateLivraisonGreaterThanEqualAndDateLivraisonLessThan(
+                periode.debut(), periode.fin(), pageable)
+                : livraisonRepository.findByDateLivraisonGreaterThanEqualAndDateLivraisonLessThanAndGrossisteId(
+                periode.debut(), periode.fin(), grossisteId, pageable);
+    }
+
+    /** Règle FI4 : coût d'achat de TOUTES les livraisons du filtre (pas seulement de la page affichée). */
+    @Transactional(readOnly = true)
+    public BigDecimal totalFiltre(LocalDate du, LocalDate au, Integer grossisteId) {
+        Periode periode = Periode.entre(du, au);
+        BigDecimal total = grossisteId == null
+                ? ligneLivraisonRepository.coutEntre(periode.debut(), periode.fin())
+                : ligneLivraisonRepository.coutEntreParGrossiste(periode.debut(), periode.fin(), grossisteId);
+        return total == null ? BigDecimal.ZERO : total;
     }
 
     // ---------- Enregistrement ----------

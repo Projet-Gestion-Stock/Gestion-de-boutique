@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.RequestParam;
+import com.boutique.gestionboutique.util.Filtres;
+import org.springframework.data.domain.Page;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -43,6 +45,8 @@ public class LivraisonController {
         this.produitService = produitService;
     }
 
+    private static final int TAILLE_PAGE = 15;
+
     // ---------- Historique ----------
 
     @GetMapping
@@ -51,21 +55,25 @@ public class LivraisonController {
                         @RequestParam(name = "au", required = false)
                         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate au,
                         @RequestParam(name = "grossisteId", required = false) Integer grossisteId,
+                        @RequestParam(name = "page", defaultValue = "1") int page,
                         Model model) {
 
-        List<Livraison> livraisons = List.of();
+        Page<Livraison> resultat = Page.empty();
+        BigDecimal total = BigDecimal.ZERO;
         if (du != null && au != null && du.isAfter(au)) {
             // Règle FI3
             model.addAttribute("erreurFiltre",
                     "La date de fin doit être postérieure ou égale à la date de début.");
         } else {
-            livraisons = livraisonService.rechercher(du, au, grossisteId);
+            resultat = livraisonService.rechercher(du, au, grossisteId, page, TAILLE_PAGE);
+            total = livraisonService.totalFiltre(du, au, grossisteId);
         }
 
         LocalDate aujourdhui = LocalDate.now();
-        model.addAttribute("livraisons", livraisons);
-        model.addAttribute("totalAffiche",
-                livraisons.stream().map(Livraison::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add));
+        model.addAttribute("livraisons", resultat.getContent());
+        model.addAttribute("pagination", resultat);
+        model.addAttribute("filtresUrl", Filtres.enUrl(du, au, "grossisteId", grossisteId));
+        model.addAttribute("totalAffiche", total);
         model.addAttribute("grossistes", grossisteService.lister());
 
         // Valeurs du filtre, pour réafficher le formulaire tel qu'il a été rempli

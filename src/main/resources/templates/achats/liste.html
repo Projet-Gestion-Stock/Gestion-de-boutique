@@ -50,7 +50,7 @@
     <div th:if="${erreurFiltre}" class="alert alert-warning" th:text="${erreurFiltre}"></div>
 
     <p class="text-muted" th:unless="${erreurFiltre}">
-        <strong th:text="${#lists.size(achats)}">0</strong> achat(s)
+        <strong th:text="${pagination.totalElements}">0</strong> achat(s)
         <span th:if="${filtreActif}">correspondant au filtre</span>
         · Total : <strong th:text="${#numbers.formatDecimal(totalAffiche, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</strong>
     </p>
@@ -90,6 +90,9 @@
             </tbody>
         </table>
     </div>
+
+    <div th:replace="~{components/pagination :: pagination(${pagination}, '/achats', ${filtresUrl})}"></div>
+
 </main>
 
 <th:block th:replace="~{components/layout :: scripts}"></th:block>

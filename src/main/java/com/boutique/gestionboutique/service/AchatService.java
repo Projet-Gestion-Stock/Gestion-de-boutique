@@ -8,13 +8,16 @@ import com.boutique.gestionboutique.model.Achat;
 import com.boutique.gestionboutique.model.LigneLivraison;
 import com.boutique.gestionboutique.model.Produit;
 import com.boutique.gestionboutique.model.Utilisateur;
-import com.boutique.gestionboutique.repository.AchatRepository;
-import com.boutique.gestionboutique.repository.LigneLivraisonRepository;
-import com.boutique.gestionboutique.repository.ProduitRepository;
-import com.boutique.gestionboutique.repository.UtilisateurRepository;
+import com.boutique.gestionboutique.repository.*;
 import com.boutique.gestionboutique.util.Periode;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.boutique.gestionboutique.repository.LigneAchatRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import java.math.BigDecimal;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -28,10 +31,13 @@ import java.util.stream.Collectors;
 @Service
 public class AchatService {
 
+    private static final Sort TRI = Sort.by(Sort.Order.desc("dateAchat"), Sort.Order.desc("id"));
+
     private final AchatRepository achatRepository;
     private final ProduitRepository produitRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final LigneLivraisonRepository ligneLivraisonRepository;
+    private final LigneAchatRepository ligneAchatRepository;
 
     /**
      * Ordre de vente des lots (règle LOT3) : le lot qui périme le plus tôt part en premier ;
@@ -49,11 +55,13 @@ public class AchatService {
     public AchatService(AchatRepository achatRepository,
                         ProduitRepository produitRepository,
                         UtilisateurRepository utilisateurRepository,
-                        LigneLivraisonRepository ligneLivraisonRepository) {
+                        LigneLivraisonRepository ligneLivraisonRepository,
+                        LigneAchatRepository ligneAchatRepository) {
         this.achatRepository = achatRepository;
         this.produitRepository = produitRepository;
         this.utilisateurRepository = utilisateurRepository;
         this.ligneLivraisonRepository = ligneLivraisonRepository;
+        this.ligneAchatRepository = ligneAchatRepository;
     }
 
     // ---------- Consultation ----------
@@ -69,15 +77,38 @@ public class AchatService {
                 .orElseThrow(() -> new RessourceIntrouvableException("Achat introuvable : " + id));
     }
 
-    /** Historique filtré : période (bornes facultatives, jours inclus) et caissier facultatif. */
+    /** Historique filtré et paginé : période (bornes facultatives, jours inclus) et caissier facultatif. Page 1 = première. */
     @Transactional(readOnly = true)
-    public List<Achat> rechercher(LocalDate du, LocalDate au, Integer caissierId) {
+    public Page<Achat> rechercher(LocalDate du, LocalDate au, Integer caissierId, int page, int taille) {
         Periode periode = Periode.entre(du, au);
+        Page<Achat> resultat = chercherPage(periode, caissierId, PageRequest.of(Math.max(page, 1) - 1, taille, TRI));
+        // Page demandée au-delà de la dernière : on affiche la dernière
+        if (resultat.getTotalPages() > 0 && resultat.getNumber() >= resultat.getTotalPages()) {
+            resultat = chercherPage(periode, caissierId, PageRequest.of(resultat.getTotalPages() - 1, taille, TRI));
+        }
+        List<Integer> ids = resultat.getContent().stream().map(Achat::getId).toList();
+        if (!ids.isEmpty()) {
+            achatRepository.chargerLignes(ids);   // initialise les lignes des achats de la page
+        }
+        return resultat;
+    }
+
+    private Page<Achat> chercherPage(Periode periode, Integer caissierId, Pageable pageable) {
         return caissierId == null
-                ? achatRepository.findByDateAchatGreaterThanEqualAndDateAchatLessThanOrderByDateAchatDesc(
-                periode.debut(), periode.fin())
-                : achatRepository.findByDateAchatGreaterThanEqualAndDateAchatLessThanAndUtilisateurIdOrderByDateAchatDesc(
-                periode.debut(), periode.fin(), caissierId);
+                ? achatRepository.findByDateAchatGreaterThanEqualAndDateAchatLessThan(
+                periode.debut(), periode.fin(), pageable)
+                : achatRepository.findByDateAchatGreaterThanEqualAndDateAchatLessThanAndUtilisateurId(
+                periode.debut(), periode.fin(), caissierId, pageable);
+    }
+
+    /** Règle FI4 : total de TOUS les achats du filtre (pas seulement de la page affichée). */
+    @Transactional(readOnly = true)
+    public BigDecimal totalFiltre(LocalDate du, LocalDate au, Integer caissierId) {
+        Periode periode = Periode.entre(du, au);
+        BigDecimal total = caissierId == null
+                ? ligneAchatRepository.chiffreAffairesEntre(periode.debut(), periode.fin())
+                : ligneAchatRepository.chiffreAffairesEntreParCaissier(periode.debut(), periode.fin(), caissierId);
+        return total == null ? BigDecimal.ZERO : total;
     }
 
     /** Utilisateurs proposés dans le filtre « caissier ». */

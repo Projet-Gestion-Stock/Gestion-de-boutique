@@ -6,75 +6,134 @@
 
 <nav th:replace="~{components/layout :: navbar}"></nav>
 
-<main class="container py-4">
-    <h1 class="h3 mb-4">Nouvel achat</h1>
+<!-- Icônes propres à cette page -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="a-recherche" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+    <symbol id="a-corbeille" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></symbol>
+    <symbol id="a-valider" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+</svg>
 
-    <form th:object="${achatForm}" th:action="@{/achats}" method="post" novalidate>
+<main class="contenu contenu--caisse">
 
-        <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger">
-            <div th:each="err : ${#fields.globalErrors()}" th:text="${err}">Erreur</div>
+    <div class="tete-page">
+        <div>
+            <h1 class="tete-page__titre">Nouvel achat</h1>
+            <p class="tete-page__sous-titre">Ajoutez les produits du client, puis validez l'achat.</p>
         </div>
+    </div>
 
-        <div class="row g-3 mb-4">
-            <div class="col-md-6">
-                <label for="nomClient" class="form-label">Nom du client (facultatif)</label>
-                <input type="text" id="nomClient" th:field="*{nomClient}" class="form-control"
-                       th:classappend="${#fields.hasErrors('nomClient')} ? 'is-invalid'">
-                <div class="invalid-feedback" th:errors="*{nomClient}">Erreur</div>
+    <form id="formAchat" th:object="${achatForm}" th:action="@{/achats}" method="post" novalidate>
+
+        <!-- Refus du serveur (stock insuffisant, produit indisponible...) -->
+        <div class="bandeau bandeau--erreur" role="alert" th:if="${#fields.hasGlobalErrors()}">
+            <svg class="ico"><use href="#n-alerte"/></svg>
+            <div class="bandeau__texte">
+                <div th:each="err : ${#fields.globalErrors()}" th:text="${err}">Erreur</div>
             </div>
+            <button type="button" class="bandeau__fermer" aria-label="Fermer le message"
+                    onclick="this.parentElement.remove()">&times;</button>
         </div>
 
-        <h2 class="h5">Panier</h2>
-        <div th:if="${#fields.hasErrors('lignes')}" class="text-danger small mb-2" th:errors="*{lignes}">Erreur</div>
+        <div class="grille-caisse">
 
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead>
-                <tr>
-                    <th style="width: 38%">Produit</th>
-                    <th class="text-end" style="width: 14%">Prix unitaire</th>
-                    <th style="width: 18%">Quantité</th>
-                    <th class="text-end" style="width: 16%">Sous-total</th>
-                    <th style="width: 10%"></th>
-                </tr>
-                </thead>
-                <tbody id="lignes" th:attr="data-defaut=@{/images/logo-defaut.jpg}">
-                <tr th:each="l, st : *{lignes}" class="ligne">
-                    <td>
-                        <div class="d-flex align-items-start gap-2">
-                            <img class="miniature rounded border d-none" alt=""
-                                 style="width:44px;height:44px;object-fit:cover;flex:none;">
-                            <div class="flex-grow-1">
-                                <input type="hidden" th:field="*{lignes[__${st.index}__].produitId}" class="produit-id">
-                                <input type="text" class="form-control produit-saisie"
-                                       placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit"
-                                       th:classappend="${#fields.hasErrors('lignes[__${st.index}__].produitId')} ? 'is-invalid'">
-                                <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].produitId}">Erreur</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="text-end prix">-</td>
-                    <td>
-                        <input type="number" min="1" step="1" th:field="*{lignes[__${st.index}__].quantite}"
-                               class="form-control quantite" aria-label="Quantité"
-                               th:classappend="${#fields.hasErrors('lignes[__${st.index}__].quantite')} ? 'is-invalid'">
-                        <div class="invalid-feedback" th:errors="*{lignes[__${st.index}__].quantite}">Erreur</div>
-                        <div class="small text-danger alerte-stock d-none"></div>
-                    </td>
-                    <td class="text-end sous-total">0,00</td>
-                    <td class="text-end">
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-retirer">Retirer</button>
-                    </td>
-                </tr>
-                </tbody>
-                <tfoot>
-                <tr class="fw-bold fs-5">
-                    <td colspan="3" class="text-end">Total</td>
-                    <td class="text-end" id="total">0,00</td>
-                    <td></td>
-                </tr>
-                </tfoot>
-            </table>
+            <!-- ===== Colonne principale : client + panier ===== -->
+            <div class="caisse__principal">
+
+                <section class="panneau carte-client">
+                    <label for="nomClient" class="form-label">Nom du client (facultatif)</label>
+                    <input type="text" id="nomClient" th:field="*{nomClient}" class="form-control" maxlength="100"
+                           placeholder="Ex : Ousmane Sow"
+                           th:classappend="${#fields.hasErrors('nomClient')} ? 'is-invalid'">
+                    <div class="invalid-feedback" th:errors="*{nomClient}">Erreur</div>
+                </section>
+
+                <section class="panneau">
+                    <div class="panneau__tete">
+                        <h2 class="panneau__titre">Panier</h2>
+                        <span class="texte-discret" id="compteLignes">0 ligne</span>
+                    </div>
+
+                    <div class="erreur-champ px-4 pb-2" th:if="${#fields.hasErrors('lignes')}" th:errors="*{lignes}">Erreur</div>
+
+                    <div class="table-responsive">
+                        <table class="tableau-app tableau-app--libre tableau-caisse">
+                            <thead>
+                            <tr>
+                                <th>Produit</th>
+                                <th class="droite compact">Prix unitaire</th>
+                                <th class="compact">Quantité</th>
+                                <th class="droite compact">Sous-total</th>
+                                <th class="compact"><span class="visually-hidden">Retirer</span></th>
+                            </tr>
+                            </thead>
+                            <tbody id="lignes" th:attr="data-devise=${devise}">
+                            <tr th:each="l, st : *{lignes}" class="ligne">
+                                <td>
+                                    <div class="ligne-produit">
+                                        <img class="miniature d-none" alt="">
+                                        <div class="champ-recherche">
+                                            <svg class="ico champ-recherche__icone"><use href="#a-recherche"/></svg>
+                                            <input type="hidden" th:field="*{lignes[__${st.index}__].produitId}" class="produit-id">
+                                            <input type="text" class="form-control produit-saisie"
+                                                   placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit"
+                                                   th:classappend="${#fields.hasErrors('lignes[__${st.index}__].produitId')} ? 'is-invalid'">
+                                            <div class="erreur-champ" th:errors="*{lignes[__${st.index}__].produitId}">Erreur</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="droite compact"><span class="prix">-</span></td>
+                                <td class="compact">
+                                    <div class="stepper">
+                                        <button type="button" class="stepper__btn" data-delta="-1" aria-label="Diminuer la quantité">&minus;</button>
+                                        <input type="number" min="1" step="1" th:field="*{lignes[__${st.index}__].quantite}"
+                                               class="quantite" aria-label="Quantité"
+                                               th:classappend="${#fields.hasErrors('lignes[__${st.index}__].quantite')} ? 'is-invalid'">
+                                        <button type="button" class="stepper__btn" data-delta="1" aria-label="Augmenter la quantité">+</button>
+                                    </div>
+                                    <div class="erreur-champ" th:errors="*{lignes[__${st.index}__].quantite}">Erreur</div>
+                                    <div class="avert-stock d-none">
+                                        <svg class="ico"><use href="#n-alerte"/></svg><span></span>
+                                    </div>
+                                </td>
+                                <td class="droite compact nombre"><span class="sous-total">0,00</span></td>
+                                <td class="droite compact">
+                                    <button type="button" class="btn-icone btn-icone--danger btn-retirer"
+                                            title="Retirer cette ligne" aria-label="Retirer cette ligne">
+                                        <svg class="ico"><use href="#a-corbeille"/></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="panneau__pied">
+                        <button type="button" id="ajouterLigne" class="lien-fleche btn-lien">
+                            <svg class="ico"><use href="#n-plus"/></svg>Ajouter un produit
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ===== Récapitulatif ===== -->
+            <aside class="recap" aria-label="Récapitulatif de l'achat">
+                <div class="recap__tete">
+                    <h2 class="panneau__titre">Récapitulatif</h2>
+                    <span class="pastille pastille--gris" id="statutAchat">En attente</span>
+                </div>
+                <div class="recap__ligne">
+                    <span>Articles</span><strong id="nbArticles">0</strong>
+                </div>
+                <div class="recap__total">
+                    <span class="texte-discret">Total à payer</span>
+                    <strong id="total">0,00</strong>
+                </div>
+                <button type="submit" class="btn-app btn-app--primaire recap__valider" id="btnValider">
+                    <svg class="ico"><use href="#a-valider"/></svg>Valider l'achat
+                </button>
+                <a th:href="@{/achats}" class="btn-app recap__annuler">Annuler</a>
+                <p class="recap__aide">Le stock sera mis à jour dès la validation.</p>
+            </aside>
         </div>
 
         <!-- Catalogue des produits (lu par le script, jamais affiché) -->
@@ -84,43 +143,44 @@
                   th:data-stock="${p.quantiteStock}" th:data-image="@{${p.imageUrl}}"></span>
         </div>
 
-        <!-- Liste de suggestions, partagée par toutes les lignes -->
-        <div id="suggestions" class="list-group shadow"
-             style="display:none; position:fixed; z-index:1055; max-height:300px; overflow-y:auto;"></div>
+        <!-- Suggestions de produits, partagées par toutes les lignes -->
+        <div id="suggestions" class="sugg"></div>
 
         <!-- Modèle d'une ligne vide (inerte : copié par le script, jamais envoyé) -->
         <template id="modeleLigne">
             <tr class="ligne">
                 <td>
-                    <div class="d-flex align-items-start gap-2">
-                        <img class="miniature rounded border d-none" alt=""
-                             style="width:44px;height:44px;object-fit:cover;flex:none;">
-                        <div class="flex-grow-1">
+                    <div class="ligne-produit">
+                        <img class="miniature d-none" alt="">
+                        <div class="champ-recherche">
+                            <svg class="ico champ-recherche__icone"><use href="#a-recherche"/></svg>
                             <input type="hidden" name="lignes[__INDEX__].produitId" class="produit-id">
                             <input type="text" class="form-control produit-saisie"
                                    placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit">
                         </div>
                     </div>
                 </td>
-                <td class="text-end prix">-</td>
-                <td>
-                    <input type="number" min="1" step="1" name="lignes[__INDEX__].quantite" value="1"
-                           class="form-control quantite" aria-label="Quantité">
-                    <div class="small text-danger alerte-stock d-none"></div>
+                <td class="droite compact"><span class="prix">-</span></td>
+                <td class="compact">
+                    <div class="stepper">
+                        <button type="button" class="stepper__btn" data-delta="-1" aria-label="Diminuer la quantité">&minus;</button>
+                        <input type="number" min="1" step="1" name="lignes[__INDEX__].quantite" value="1"
+                               class="quantite" aria-label="Quantité">
+                        <button type="button" class="stepper__btn" data-delta="1" aria-label="Augmenter la quantité">+</button>
+                    </div>
+                    <div class="avert-stock d-none">
+                        <svg class="ico"><use href="#n-alerte"/></svg><span></span>
+                    </div>
                 </td>
-                <td class="text-end sous-total">0,00</td>
-                <td class="text-end">
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-retirer">Retirer</button>
+                <td class="droite compact nombre"><span class="sous-total">0,00</span></td>
+                <td class="droite compact">
+                    <button type="button" class="btn-icone btn-icone--danger btn-retirer"
+                            title="Retirer cette ligne" aria-label="Retirer cette ligne">
+                        <svg class="ico"><use href="#a-corbeille"/></svg>
+                    </button>
                 </td>
             </tr>
         </template>
-
-        <button type="button" id="ajouterLigne" class="btn btn-outline-primary mb-4">+ Ajouter un produit</button>
-
-        <div>
-            <button type="submit" class="btn btn-primary">Valider l'achat</button>
-            <a th:href="@{/achats}" class="btn btn-outline-secondary">Annuler</a>
-        </div>
     </form>
 </main>
 
@@ -128,10 +188,12 @@
 
 <script>
     (function () {
+        var formulaire = document.getElementById('formAchat');
         var corps = document.getElementById('lignes');
         var modele = document.getElementById('modeleLigne');
         var boite = document.getElementById('suggestions');
-        var imageParDefaut = corps.dataset.defaut;
+        var btnValider = document.getElementById('btnValider');
+        var devise = corps.dataset.devise || '';
 
         var catalogue = Array.prototype.map.call(
             document.querySelectorAll('#catalogue span'),
@@ -154,57 +216,70 @@
         function formater(nombre) {
             return nombre.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
+        function montant(nombre) { return formater(nombre) + (devise ? ' ' + devise : ''); }
 
-        // Prix unitaire, sous-totaux, total, miniature et avertissement de stock (aide à la saisie : le serveur fait foi)
+        // Montant d'une cellule du tableau : le chiffre, et la devise en petit dessous (valeur null : un tiret)
+        function ecrireMontant(element, valeur) {
+            element.textContent = '';
+            if (valeur === null) { element.textContent = '-'; return; }
+            element.appendChild(document.createTextNode(formater(valeur)));
+            if (devise) {
+                var petit = document.createElement('small');
+                petit.textContent = devise;
+                element.appendChild(petit);
+            }
+        }
+
+        // ---------- Calculs et affichage (aide à la saisie : le serveur fait foi) ----------
         function recalculer() {
-            var total = 0;
+            var total = 0, articles = 0, lignes = 0;
             corps.querySelectorAll('tr.ligne').forEach(function (tr) {
                 var p = parId[tr.querySelector('.produit-id').value];
-                var prix = p ? p.prix : 0;
-                var stock = p ? p.stock : 0;
                 var quantite = parseInt(tr.querySelector('.quantite').value, 10) || 0;
-                var sousTotal = prix * quantite;
+                var sousTotal = p ? p.prix * quantite : 0;
 
-                tr.querySelector('.prix').textContent = p ? formater(prix) : '-';
-                tr.querySelector('.sous-total').textContent = formater(sousTotal);
+                ecrireMontant(tr.querySelector('.prix'), p ? p.prix : null);
+                ecrireMontant(tr.querySelector('.sous-total'), sousTotal);
+                majMiniature(tr, p);
 
-                // Miniature du produit choisi (masquée tant qu'aucun produit n'est choisi)
-                var miniature = tr.querySelector('.miniature');
-                if (p && p.image) {
-                    if (miniature.getAttribute('src') !== p.image) {
-                        miniature.onerror = function () {
-                            miniature.onerror = null;
-                            miniature.src = imageParDefaut; // fichier introuvable : image par défaut
-                        };
-                        miniature.src = p.image;
-                    }
-                    miniature.classList.remove('d-none');
-                } else {
-                    miniature.classList.add('d-none');
-                }
+                var avert = tr.querySelector('.avert-stock');
+                var depasse = !!p && quantite > p.stock;
+                avert.classList.toggle('d-none', !depasse);
+                if (depasse) { avert.querySelector('span').textContent = 'Stock dispo : ' + p.stock; }
 
-                var alerte = tr.querySelector('.alerte-stock');
-                var depasse = !!p && quantite > stock;
-                alerte.textContent = depasse ? 'Stock disponible : ' + stock : '';
-                alerte.classList.toggle('d-none', !depasse);
-
-                total += sousTotal;
+                if (p) { lignes++; articles += quantite; total += sousTotal; }
             });
-            document.getElementById('total').textContent = formater(total);
+            document.getElementById('compteLignes').textContent = lignes + (lignes > 1 ? ' lignes' : ' ligne');
+            document.getElementById('nbArticles').textContent = articles;
+            document.getElementById('total').textContent = montant(total);
+
+            var enCours = lignes > 0;
+            btnValider.disabled = !enCours;
+            var statut = document.getElementById('statutAchat');
+            statut.textContent = enCours ? 'En cours' : 'En attente';
+            statut.className = 'pastille ' + (enCours ? 'pastille--bleu' : 'pastille--gris');
+        }
+
+        function majMiniature(tr, p) {
+            var miniature = tr.querySelector('.miniature');
+            if (p && p.image) {
+                if (miniature.getAttribute('src') !== p.image) { miniature.src = p.image; }
+                miniature.classList.remove('d-none');
+            } else {
+                miniature.classList.add('d-none');
+            }
         }
 
         // Renumérote lignes[0], lignes[1]... sans trou après un retrait
         function renumeroter() {
             corps.querySelectorAll('tr.ligne').forEach(function (tr, i) {
-                tr.querySelectorAll('select, input').forEach(function (champ) {
-                    champ.name = champ.name.replace(/lignes\[\d+\]/, 'lignes[' + i + ']');
+                tr.querySelectorAll('input').forEach(function (champ) {
+                    if (champ.name) { champ.name = champ.name.replace(/lignes\[\d+\]/, 'lignes[' + i + ']'); }
                 });
             });
         }
 
-        // --- Recherche de produit ---
-
-        // Produits dont le nom commence par le texte, puis ceux qui le contiennent
+        // ---------- Recherche de produit ----------
         function chercher(texte) {
             var t = texte.trim().toLowerCase();
             if (t === '') { return catalogue.slice(); }
@@ -219,38 +294,45 @@
         function positionner() {
             if (!champActif) { return; }
             var r = champActif.getBoundingClientRect();
-            boite.style.left = r.left + 'px';
-            boite.style.top = r.bottom + 'px';
-            boite.style.width = Math.max(r.width, 320) + 'px';
+            var largeur = Math.max(r.width, 360);
+            var gauche = Math.min(r.left, window.innerWidth - largeur - 8);
+            boite.style.left = Math.max(8, gauche) + 'px';
+            boite.style.top = (r.bottom + 4) + 'px';
+            boite.style.width = largeur + 'px';
         }
 
-        // Une suggestion : miniature, nom, prix et stock. index < 0 : produit en rupture (non sélectionnable).
+        // Une suggestion : miniature, nom, prix et stock (index < 0 : produit en rupture, non sélectionnable)
         function creerItem(p, index) {
             var rupture = index < 0;
             var item = document.createElement(rupture ? 'div' : 'button');
-            item.className = 'list-group-item d-flex align-items-center gap-2'
-                + (rupture ? ' disabled text-muted' : ' list-group-item-action');
-            if (!rupture) {
-                item.type = 'button';
-                item.dataset.index = index;
-            }
+            item.className = 'sugg__item' + (rupture ? ' sugg__item--rupture' : '');
+            if (!rupture) { item.type = 'button'; item.dataset.index = index; }
 
             var img = document.createElement('img');
+            img.className = 'sugg__img';
             img.alt = '';
             img.loading = 'lazy';
-            img.className = 'rounded border';
-            img.style.cssText = 'width:28px;height:28px;object-fit:cover;flex:none;';
-            img.onerror = function () { img.onerror = null; img.src = imageParDefaut; };
             img.src = p.image;
 
             var nom = document.createElement('span');
-            nom.className = 'flex-grow-1 text-start';
+            nom.className = 'sugg__nom';
             nom.textContent = p.nom;
 
-            var info = document.createElement('small');
-            info.className = 'text-muted text-nowrap';
-            info.textContent = rupture ? 'rupture' : formater(p.prix) + ' · stock : ' + p.stock;
-
+            var info;
+            if (rupture) {
+                info = document.createElement('span');
+                info.className = 'pastille pastille--rouge';
+                info.textContent = 'Rupture';
+            } else {
+                info = document.createElement('span');
+                info.className = 'sugg__info';
+                var prix = document.createElement('strong');
+                prix.textContent = montant(p.prix);
+                var stock = document.createElement('small');
+                stock.textContent = 'Stock : ' + p.stock;
+                info.appendChild(prix);
+                info.appendChild(stock);
+            }
             item.appendChild(img);
             item.appendChild(nom);
             item.appendChild(info);
@@ -262,18 +344,19 @@
             var trouves = chercher(champ.value);
             resultats = trouves.filter(function (p) { return p.stock > 0; });
             var ruptures = trouves.filter(function (p) { return p.stock <= 0; });
-            indexActif = -1;
             boite.innerHTML = '';
 
             if (trouves.length === 0) {
                 var vide = document.createElement('div');
-                vide.className = 'list-group-item text-muted small';
+                vide.className = 'sugg__vide';
                 vide.textContent = 'Aucun produit trouvé';
                 boite.appendChild(vide);
             }
             resultats.forEach(function (p, i) { boite.appendChild(creerItem(p, i)); });
             ruptures.forEach(function (p) { boite.appendChild(creerItem(p, -1)); });
 
+            indexActif = -1;
+            if (resultats.length > 0) { surligner(0); }
             positionner();
             boite.style.display = 'block';
         }
@@ -288,7 +371,7 @@
             var items = boite.querySelectorAll('button[data-index]');
             if (items.length === 0) { return; }
             indexActif = (nouvelIndex + items.length) % items.length;
-            items.forEach(function (it, i) { it.classList.toggle('active', i === indexActif); });
+            items.forEach(function (it, i) { it.classList.toggle('sugg__item--actif', i === indexActif); });
             items[indexActif].scrollIntoView({ block: 'nearest' });
         }
 
@@ -315,7 +398,7 @@
 
         function estSaisie(el) { return el.classList && el.classList.contains('produit-saisie'); }
 
-        // --- Événements du champ de saisie (délégués sur le tableau) ---
+        // ---------- Événements ----------
         corps.addEventListener('focusin', function (e) {
             if (estSaisie(e.target)) { afficher(e.target); }
         });
@@ -361,13 +444,40 @@
             if (item && champActif) { choisir(resultats[item.dataset.index]); }
         });
 
+        // Boutons − et + de la quantité, et bouton de retrait d'une ligne
+        corps.addEventListener('click', function (e) {
+            var pas = e.target.closest('.stepper__btn');
+            if (pas) {
+                var champ = pas.parentElement.querySelector('.quantite');
+                var valeur = (parseInt(champ.value, 10) || 0) + parseInt(pas.dataset.delta, 10);
+                champ.value = valeur < 1 ? 1 : valeur;
+                recalculer();
+                return;
+            }
+            var retirer = e.target.closest('.btn-retirer');
+            if (!retirer) { return; }
+            var tr = retirer.closest('tr.ligne');
+            if (corps.querySelectorAll('tr.ligne').length === 1) {
+                // Dernière ligne : on la vide au lieu de la supprimer
+                tr.querySelector('.produit-id').value = '';
+                tr.querySelector('.produit-saisie').value = '';
+                tr.querySelector('.produit-saisie').classList.remove('is-invalid');
+                tr.querySelector('.quantite').value = 1;
+            } else {
+                tr.remove();
+            }
+            fermer();
+            renumeroter();
+            recalculer();
+        });
+
         // La liste suit le champ si la page défile ou change de taille
         window.addEventListener('scroll', function (e) {
             if (e.target !== boite) { positionner(); }
         }, true);
         window.addEventListener('resize', positionner);
 
-        // --- Lignes ---
+        // ---------- Lignes ----------
         document.getElementById('ajouterLigne').addEventListener('click', function () {
             var index = corps.querySelectorAll('tr.ligne').length;
             corps.insertAdjacentHTML('beforeend', modele.innerHTML.replace(/__INDEX__/g, index));
@@ -375,16 +485,11 @@
             recalculer();
         });
 
-        corps.addEventListener('click', function (e) {
-            var bouton = e.target.closest('.btn-retirer');
-            if (!bouton) { return; }
-            bouton.closest('tr.ligne').remove();
-            fermer();
-            renumeroter();
-            recalculer();
-        });
+        // Une validation à la fois : évite d'enregistrer deux fois le même achat par un double clic
+        formulaire.addEventListener('submit', function () { btnValider.disabled = true; });
+        window.addEventListener('pageshow', recalculer);
 
-        // Après une erreur de validation, réaffiche le nom du produit déjà choisi
+        // Après un refus du serveur : réaffiche le nom des produits déjà choisis
         corps.querySelectorAll('tr.ligne').forEach(function (tr) {
             var p = parId[tr.querySelector('.produit-id').value];
             if (p) { tr.querySelector('.produit-saisie').value = p.nom; }

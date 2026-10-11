@@ -10,7 +10,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.RequestParam;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
+import com.boutique.gestionboutique.util.Filtres;
+import org.springframework.data.domain.Page;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -49,6 +50,8 @@ public class AchatController {
         this.boutiqueDevise = boutiqueDevise;
     }
 
+    private static final int TAILLE_PAGE = 15;
+
     // ---------- Historique ----------
 
     @GetMapping
@@ -57,21 +60,25 @@ public class AchatController {
                         @RequestParam(name = "au", required = false)
                         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate au,
                         @RequestParam(name = "caissierId", required = false) Integer caissierId,
+                        @RequestParam(name = "page", defaultValue = "1") int page,
                         Model model) {
 
-        List<Achat> achats = List.of();
+        Page<Achat> resultat = Page.empty();
+        BigDecimal total = BigDecimal.ZERO;
         if (du != null && au != null && du.isAfter(au)) {
             // Règle FI3
             model.addAttribute("erreurFiltre",
                     "La date de fin doit être postérieure ou égale à la date de début.");
         } else {
-            achats = achatService.rechercher(du, au, caissierId);
+            resultat = achatService.rechercher(du, au, caissierId, page, TAILLE_PAGE);
+            total = achatService.totalFiltre(du, au, caissierId);
         }
 
         LocalDate aujourdhui = LocalDate.now();
-        model.addAttribute("achats", achats);
-        model.addAttribute("totalAffiche",
-                achats.stream().map(Achat::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add));
+        model.addAttribute("achats", resultat.getContent());
+        model.addAttribute("pagination", resultat);
+        model.addAttribute("filtresUrl", Filtres.enUrl(du, au, "caissierId", caissierId));
+        model.addAttribute("totalAffiche", total);
         model.addAttribute("caissiers", achatService.listerUtilisateurs());
 
         // Valeurs du filtre, pour réafficher le formulaire tel qu'il a été rempli
@@ -148,6 +155,7 @@ public class AchatController {
     /** Règle AC4 : seuls les produits actifs sont proposés (ceux en rupture sont affichés mais non sélectionnables). */
     private void preparerFormulaire(Model model) {
         model.addAttribute("produits", produitService.rechercher(null, false));
+        model.addAttribute("devise", boutiqueDevise);
     }
 
     private void verifierLignes(AchatDTO form, BindingResult result) {

@@ -26,4 +26,12 @@ public interface LigneAchatRepository extends JpaRepository<LigneAchat, LigneAch
             + "group by p.id, p.nom, p.image "
             + "order by sum(l.quantite) desc, sum(l.quantite * l.prixUnitaire) desc")
     List<ProduitVenduDTO> produitsLesPlusVendus(@Param("debut") LocalDateTime debut, Pageable pageable);
+
+    /** Total des ventes de la période, pour un caissier ; null s'il n'y a aucune vente. */
+    @Query("select sum(l.quantite * l.prixUnitaire) from LigneAchat l "
+            + "where l.achat.dateAchat >= :debut and l.achat.dateAchat < :fin "
+            + "and l.achat.utilisateur.id = :idUtilisateur")
+    BigDecimal chiffreAffairesEntreParCaissier(@Param("debut") LocalDateTime debut,
+                                               @Param("fin") LocalDateTime fin,
+                                               @Param("idUtilisateur") Integer idUtilisateur);
 }

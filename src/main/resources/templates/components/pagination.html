@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Pagination : p = Page Spring, base = chemin (ex. '/achats'), filtres = critères déjà encodés ('&du=...') -->
+<nav th:fragment="pagination(p, base, filtres)" th:if="${p.totalPages > 1}" class="mt-3" aria-label="Pagination">
+    <ul class="pagination justify-content-center mb-1"
+        th:with="courante=${p.number + 1}, total=${p.totalPages}">
+
+        <li class="page-item" th:classappend="${p.first} ? 'disabled'">
+            <a class="page-link" th:href="@{${base}(page=${courante - 1})} + ${filtres}">&laquo; Précédent</a>
+        </li>
+
+        <th:block th:each="n : ${#numbers.sequence(1, total)}">
+            <li class="page-item" th:if="${n == 1 or n == total or (n >= courante - 2 and n <= courante + 2)}"
+                th:classappend="${n == courante} ? 'active'">
+                <a class="page-link" th:href="@{${base}(page=${n})} + ${filtres}" th:text="${n}">1</a>
+            </li>
+            <li class="page-item disabled"
+                th:if="${(n == courante - 3 and n > 1) or (n == courante + 3 and n < total)}">
+                <span class="page-link">&hellip;</span>
+            </li>
+        </th:block>
+
+        <li class="page-item" th:classappend="${p.last} ? 'disabled'">
+            <a class="page-link" th:href="@{${base}(page=${courante + 1})} + ${filtres}">Suivant &raquo;</a>
+        </li>
+    </ul>
+    <p class="text-center text-muted small mb-0">
+        Page <span th:text="${p.number + 1}">1</span> sur <span th:text="${p.totalPages}">1</span>
+    </p>
+</nav>
+
+</body>
+</html>
