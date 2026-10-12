@@ -17,7 +17,7 @@ public class TableauDeBordController {
 
     public TableauDeBordController(
             TableauDeBordService tableauDeBordService,
-            @Value("${boutique.devise:}") String devise) {
+            @Value("app.boutique.devise") String devise) {
         this.tableauDeBordService = tableauDeBordService;
         this.devise = devise;
     }
