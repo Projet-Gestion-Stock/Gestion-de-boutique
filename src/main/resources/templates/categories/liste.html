@@ -6,52 +6,178 @@
 
 <nav th:replace="~{components/layout :: navbar}"></nav>
 
-<main class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 m-0">Catégories</h1>
-        <div class="d-flex gap-2">
-            <a th:href="@{/produits}" class="btn btn-outline-secondary">Retour aux produits</a>
-            <a th:href="@{/categories/nouveau}" class="btn btn-primary">Ajouter une catégorie</a>
+<main class="contenu">
+
+    <div class="tete-page">
+        <div>
+            <h1 class="tete-page__titre">Catégories</h1>
+            <p class="tete-page__sous-titre" th:with="n=${#lists.size(categories)}"
+               th:text="|${n} ${n > 1 ? 'catégories' : 'catégorie'} au catalogue|">6 catégories au catalogue</p>
+        </div>
+        <div class="tete-page__actions">
+            <a th:href="@{/produits}" class="btn-app">&larr; Retour aux produits</a>
+            <button type="button" class="btn-app btn-app--primaire btn-ajouter">
+                <svg class="ico"><use href="#n-plus"/></svg>Ajouter une catégorie
+            </button>
         </div>
     </div>
 
     <div th:replace="~{components/layout :: messages}"></div>
 
-    <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle">
-            <thead class="table-dark">
-            <tr>
-                <th>Nom</th>
-                <th>Produits rattachés</th>
-                <th class="text-end">Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="c : ${categories}">
-                <td th:text="${c.nom}">Boissons</td>
-                <td th:text="${c.nbProduits}">0</td>
-                <td class="text-end">
-                    <a th:href="@{/categories/{id}/modifier(id=${c.id})}"
-                       class="btn btn-sm btn-outline-primary">Renommer</a>
-
-                    <form th:if="${c.nbProduits == 0}"
-                          th:action="@{/categories/{id}/supprimer(id=${c.id})}"
-                          method="post" class="d-inline"
-                          onsubmit="return confirm('Supprimer cette catégorie ?');">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
-                    </form>
-                    <button th:unless="${c.nbProduits == 0}" type="button" class="btn btn-sm btn-outline-secondary"
-                            disabled title="Cette catégorie contient des produits">Supprimer</button>
-                </td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(categories)}">
-                <td colspan="3" class="text-center text-muted">Aucune catégorie. Créez-en une pour pouvoir ajouter des produits.</td>
-            </tr>
-            </tbody>
-        </table>
+    <!-- État vide -->
+    <div class="vide-pointille" th:if="${#lists.isEmpty(categories)}">
+        <span class="vide__icone vide__icone--neutre"><svg class="ico"><use href="#n-categories"/></svg></span>
+        <strong>Aucune catégorie.</strong>
+        <span class="texte-discret">Créez-en une pour pouvoir ajouter des produits.</span>
+        <button type="button" class="btn-app btn-app--primaire btn-ajouter">
+            <svg class="ico"><use href="#n-plus"/></svg>Ajouter une catégorie
+        </button>
     </div>
+
+    <!-- Liste -->
+    <section class="panneau" th:unless="${#lists.isEmpty(categories)}">
+        <div class="table-responsive">
+            <table class="tableau-app tableau-app--libre">
+                <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th class="centre compact">Produits rattachés</th>
+                    <th class="droite compact">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="c : ${categories}">
+                    <td>
+                        <div class="identite">
+                            <span class="carre-icone"><svg class="ico"><use href="#n-categories"/></svg></span>
+                            <span class="identite__nom" th:text="${c.nom}">Céréales</span>
+                        </div>
+                    </td>
+                    <td class="centre compact">
+                        <span class="chip-nombre"
+                              th:text="|${c.nbProduits} ${c.nbProduits > 1 ? 'produits' : 'produit'}|">12 produits</span>
+                    </td>
+                    <td class="droite compact">
+                        <div class="actions-ligne">
+                            <button type="button" class="btn-icone btn-modifier" title="Renommer"
+                                    aria-label="Renommer cette catégorie"
+                                    th:attr="data-id=${c.id}, data-nom=${c.nom}">
+                                <svg class="ico"><use href="#n-modifier"/></svg>
+                            </button>
+                            <button th:if="${c.nbProduits == 0}" type="button"
+                                    class="btn-icone btn-icone--danger btn-supprimer" title="Supprimer"
+                                    aria-label="Supprimer cette catégorie"
+                                    th:attr="data-id=${c.id}, data-nom=${c.nom}">
+                                <svg class="ico"><use href="#n-corbeille"/></svg>
+                            </button>
+                            <button th:unless="${c.nbProduits == 0}" type="button" class="btn-icone" disabled
+                                    title="Cette catégorie contient des produits" aria-label="Suppression impossible">
+                                <svg class="ico"><use href="#n-corbeille"/></svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
 </main>
 
+<!-- ======================= Fenêtres ======================= -->
+
+<!-- Ajout / renommage -->
+<div class="modal fade" id="modalCategorie" tabindex="-1" aria-labelledby="modalCategorieTitre" aria-hidden="true"
+     th:data-ouvrir="${ouvrirModal}">
+    <div class="modal-dialog modal-dialog-centered modal-petit">
+        <form class="modal-content" id="formCategorie" th:object="${categorieForm}"
+              th:action="${edition} ? @{/categories/{id}(id=${idCategorie})} : @{/categories}"
+              th:data-action-creation="@{/categories}"
+              method="post" novalidate>
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalCategorieTitre"
+                    th:text="${edition} ? 'Renommer la catégorie' : 'Ajouter une catégorie'">Ajouter une catégorie</h2>
+                <button type="button" class="btn-icone" data-bs-dismiss="modal" aria-label="Fermer">
+                    <svg class="ico"><use href="#n-fermer"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label for="nom" class="form-label">Nom de la catégorie <span class="text-danger">*</span></label>
+                <input type="text" id="nom" th:field="*{nom}" class="form-control" maxlength="100"
+                       placeholder="Ex : Boissons"
+                       th:classappend="${#fields.hasErrors('nom')} ? 'is-invalid'">
+                <div class="invalid-feedback" th:errors="*{nom}">Erreur</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-app" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn-app btn-app--primaire">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Confirmation de suppression -->
+<div class="modal fade" id="modalSupprimer" tabindex="-1" aria-labelledby="modalSupprimerTitre" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-confirmation modal-confirmation--centre">
+        <form class="modal-content" id="formSupprimer" th:action="@{/categories}" method="post">
+            <div class="modal-body">
+                <span class="modal-icone modal-icone--danger"><svg class="ico"><use href="#n-corbeille"/></svg></span>
+                <h2 class="modal-title" id="modalSupprimerTitre">Supprimer cette catégorie ?</h2>
+                <p class="text-secondary mt-2 mb-0">
+                    « <strong id="nomASupprimer"></strong> » sera définitivement supprimée.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-app" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn-app btn-app--danger">Supprimer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <th:block th:replace="~{components/layout :: scripts}"></th:block>
+
+<script>
+    (function () {
+        var modalEl = document.getElementById('modalCategorie');
+        var form = document.getElementById('formCategorie');
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        var urlBase = form.dataset.actionCreation;   // « /categories »
+        var champNom = document.getElementById('nom');
+
+        function effacerErreurs() {
+            form.querySelectorAll('.is-invalid').forEach(function (e) { e.classList.remove('is-invalid'); });
+        }
+
+        function ouvrir(edition, d) {
+            form.action = edition ? urlBase + '/' + d.id : urlBase;
+            document.getElementById('modalCategorieTitre').textContent =
+                edition ? 'Renommer la catégorie' : 'Ajouter une catégorie';
+            champNom.value = edition ? d.nom : '';
+            effacerErreurs();
+            modal.show();
+        }
+
+        modalEl.addEventListener('shown.bs.modal', function () { champNom.focus(); champNom.select(); });
+
+        var modalSupprimer = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalSupprimer'));
+        var formSupprimer = document.getElementById('formSupprimer');
+        var baseSupprimer = formSupprimer.getAttribute('action');
+
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('.btn-ajouter')) { ouvrir(false, null); return; }
+            var modifier = e.target.closest('.btn-modifier');
+            if (modifier) { ouvrir(true, modifier.dataset); return; }
+            var supprimer = e.target.closest('.btn-supprimer');
+            if (supprimer) {
+                formSupprimer.action = baseSupprimer + '/' + supprimer.dataset.id + '/supprimer';
+                document.getElementById('nomASupprimer').textContent = supprimer.dataset.nom;
+                modalSupprimer.show();
+            }
+        });
+
+        // Après un refus du serveur : la fenêtre se rouvre avec les messages d'erreur
+        if (modalEl.dataset.ouvrir === 'true') { modal.show(); }
+    })();
+</script>
 </body>
 </html>

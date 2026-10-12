@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Fenêtre d'aperçu du ticket. Tout lien portant data-ticket (url) et data-numero l'ouvre. Sans JavaScript, le lien ouvre la page du ticket. -->
+<th:block th:fragment="modalTicket">
+    <div class="modal fade" id="modalTicket" tabindex="-1" aria-labelledby="modalTicketTitre" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-ticket">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="modal-entete-icone"><svg class="ico"><use href="#n-imprimante"/></svg></span>
+                    <h2 class="modal-title" id="modalTicketTitre">Ticket</h2>
+                    <button type="button" class="btn-icone" data-bs-dismiss="modal" aria-label="Fermer">
+                        <svg class="ico"><use href="#n-fermer"/></svg>
+                    </button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="ticket-fond">
+                        <iframe id="ticketCadre" class="ticket-cadre" title="Aperçu du ticket"></iframe>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-app" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn-app btn-app--primaire" id="ticketImprimer">
+                        <svg class="ico"><use href="#n-imprimante"/></svg>Imprimer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var fenetre = document.getElementById('modalTicket');
+            var cadre = document.getElementById('ticketCadre');
+            var modal = bootstrap.Modal.getOrCreateInstance(fenetre);
+
+            document.addEventListener('click', function (e) {
+                var lien = e.target.closest('[data-ticket]');
+                if (!lien) { return; }
+                e.preventDefault();
+                document.getElementById('modalTicketTitre').textContent = 'Ticket n° ' + lien.dataset.numero;
+                cadre.src = lien.dataset.ticket;
+                modal.show();
+            });
+
+            // Hauteur du cadre = hauteur du ticket
+            cadre.addEventListener('load', function () {
+                try {
+                    var hauteur = cadre.contentDocument.documentElement.scrollHeight;
+                    cadre.style.height = Math.min(Math.max(hauteur, 320), 560) + 'px';
+                } catch (e) { /* page non lisible : on garde la hauteur par défaut */ }
+            });
+
+            fenetre.addEventListener('hidden.bs.modal', function () { cadre.removeAttribute('src'); });
+
+            document.getElementById('ticketImprimer').addEventListener('click', function () {
+                cadre.contentWindow.focus();
+                cadre.contentWindow.print();
+            });
+        })();
+    </script>
+</th:block>
+
+</body>
+</html>

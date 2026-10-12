@@ -23,22 +23,16 @@ public class GrossisteController {
         this.grossisteService = grossisteService;
     }
 
-    // ---------- Liste ----------
+    // ---------- Liste (la création et la modification se font dans une fenêtre) ----------
 
     @GetMapping
     public String liste(Model model) {
-        model.addAttribute("grossistes", grossisteService.lister());
+        model.addAttribute("grossisteForm", GrossisteDTO.vide());
+        preparerListe(model, null, false);
         return "grossistes/liste";
     }
 
     // ---------- Création ----------
-
-    @GetMapping("/nouveau")
-    public String nouveau(Model model) {
-        model.addAttribute("grossisteForm", GrossisteDTO.vide());
-        preparerFormulaire(model, null);
-        return "grossistes/formulaire";
-    }
 
     @PostMapping
     public String creer(@Valid @ModelAttribute("grossisteForm") GrossisteDTO form,
@@ -47,8 +41,8 @@ public class GrossisteController {
                         RedirectAttributes redirect) {
         verifierSaisie(form, result, null);
         if (result.hasErrors()) {
-            preparerFormulaire(model, null);
-            return "grossistes/formulaire";
+            preparerListe(model, null, true);
+            return "grossistes/liste";
         }
         grossisteService.creer(form);
         redirect.addFlashAttribute("succes", "Grossiste « " + form.nom().trim() + " » ajouté.");
@@ -56,13 +50,6 @@ public class GrossisteController {
     }
 
     // ---------- Modification ----------
-
-    @GetMapping("/{id}/modifier")
-    public String modifier(@PathVariable Integer id, Model model) {
-        model.addAttribute("grossisteForm", GrossisteDTO.depuis(grossisteService.trouver(id)));
-        preparerFormulaire(model, id);
-        return "grossistes/formulaire";
-    }
 
     @PostMapping("/{id}")
     public String enregistrerModification(@PathVariable Integer id,
@@ -72,8 +59,8 @@ public class GrossisteController {
                                           RedirectAttributes redirect) {
         verifierSaisie(form, result, id);
         if (result.hasErrors()) {
-            preparerFormulaire(model, id);
-            return "grossistes/formulaire";
+            preparerListe(model, id, true);
+            return "grossistes/liste";
         }
         grossisteService.modifier(id, form);
         redirect.addFlashAttribute("succes", "Grossiste modifié avec succès.");
@@ -82,10 +69,12 @@ public class GrossisteController {
 
     // ---------- Outils ----------
 
-    /** idGrossiste = null pour une création, l'id du grossiste pour une modification. */
-    private void preparerFormulaire(Model model, Integer idGrossiste) {
+    /** idGrossiste = null pour une création ; ouvrir = true quand la fenêtre doit se rouvrir (formulaire refusé). */
+    private void preparerListe(Model model, Integer idGrossiste, boolean ouvrir) {
+        model.addAttribute("grossistes", grossisteService.lister());
         model.addAttribute("edition", idGrossiste != null);
         model.addAttribute("idGrossiste", idGrossiste);
+        model.addAttribute("ouvrirModal", ouvrir);
     }
 
     private void verifierSaisie(GrossisteDTO form, BindingResult result, Integer idExclu) {

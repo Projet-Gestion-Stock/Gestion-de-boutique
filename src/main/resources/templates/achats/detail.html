@@ -6,69 +6,98 @@
 
 <nav th:replace="~{components/layout :: navbar}"></nav>
 
-<main class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 m-0">Achat n° <span th:text="${achat.id}">1</span></h1>
-        <div>
-            <a th:href="@{/achats/{id}/ticket(id=${achat.id})}" target="_blank" rel="noopener"
-               class="btn btn-success">Imprimer le ticket</a>
-            <a th:href="@{/achats/nouveau}" class="btn btn-primary">Nouvel achat</a>
-            <a th:href="@{/achats}" class="btn btn-outline-secondary">Retour à l'historique</a>
-        </div>
-    </div>
+<main class="contenu">
 
     <div th:replace="~{components/layout :: messages}"></div>
 
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="text-muted small">Date</div>
-                    <div th:text="${#temporals.format(achat.dateAchat, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</div>
-                </div>
-                <div class="col-md-4">
-                    <div class="text-muted small">Caissier</div>
-                    <div th:text="${achat.utilisateur.nomComplet}">Prénom Nom</div>
-                </div>
-                <div class="col-md-4">
-                    <div class="text-muted small">Client</div>
-                    <div th:text="${achat.nomClient != null} ? ${achat.nomClient} : '-'">-</div>
-                </div>
-            </div>
+    <a th:href="@{/achats}" class="lien-retour">&larr; Retour à l'historique</a>
+
+    <div class="tete-page">
+        <h1 class="tete-page__titre">Achat n° <span th:text="${#numbers.formatInteger(achat.id, 6)}">000128</span></h1>
+        <div class="tete-page__actions">
+            <a th:href="@{/achats/{id}/ticket(id=${achat.id})}" target="_blank" rel="noopener"
+               th:attr="data-ticket=@{/achats/{id}/ticket(id=${achat.id})}, data-numero=${#numbers.formatInteger(achat.id, 6)}"
+               class="btn-app btn-app--primaire">
+                <svg class="ico"><use href="#n-imprimante"/></svg>Imprimer le ticket
+            </a>
+            <a th:href="@{/achats/nouveau}" class="btn-app">
+                <svg class="ico"><use href="#n-plus"/></svg>Nouvel achat
+            </a>
         </div>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-striped align-middle">
-            <thead class="table-dark">
-            <tr>
-                <th>Produit</th>
-                <th class="text-end">Quantité</th>
-                <th class="text-end">Prix unitaire</th>
-                <th class="text-end">Sous-total</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="ligne : ${achat.lignes}">
-                <td th:text="${ligne.produit.nom}">Produit</td>
-                <td class="text-end" th:text="${ligne.quantite}">0</td>
-                <td class="text-end"
-                    th:text="${#numbers.formatDecimal(ligne.prixUnitaire, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
-                <td class="text-end"
-                    th:text="${#numbers.formatDecimal(ligne.sousTotal, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
-            </tr>
-            </tbody>
-            <tfoot>
-            <tr class="fw-bold">
-                <td colspan="3" class="text-end">Total</td>
-                <td class="text-end"
-                    th:text="${#numbers.formatDecimal(achat.total, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
-            </tr>
-            </tfoot>
-        </table>
+    <div class="cartes-resume">
+        <div class="resume">
+            <span class="resume__libelle">Date</span>
+            <span class="resume__valeur">
+                <span th:text="${#temporals.format(achat.dateAchat, 'dd/MM/yyyy')}">08/10/2026</span>
+                <small th:text="${#temporals.format(achat.dateAchat, 'HH:mm')}">14:32</small>
+            </span>
+        </div>
+        <div class="resume">
+            <span class="resume__libelle">Caissier</span>
+            <span class="resume__valeur">
+                <span class="avatar-mini" th:data-initiales="${achat.utilisateur.nomComplet}">AD</span>
+                <span th:text="${achat.utilisateur.nomComplet}">Awa Diop</span>
+            </span>
+        </div>
+        <div class="resume">
+            <span class="resume__libelle">Client</span>
+            <span class="resume__valeur" th:text="${achat.nomClient != null} ? ${achat.nomClient} : '-'">Ousmane Sow</span>
+        </div>
+        <div class="resume">
+            <span class="resume__libelle">Articles</span>
+            <span class="resume__valeur" th:text="${achat.nombreArticles}">7</span>
+        </div>
     </div>
+
+    <section class="panneau">
+        <div class="panneau__tete">
+            <div>
+                <h2 class="panneau__titre">Produits achetés</h2>
+                <p class="panneau__sous-titre"
+                   th:with="n=${#lists.size(achat.lignes)}"
+                   th:text="|${n} ${n > 1 ? 'références d''articles' : 'référence d''article'}|">3 références d'articles</p>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="tableau-app tableau-app--libre">
+                <thead>
+                <tr>
+                    <th>Produit</th>
+                    <th class="droite compact">Quantité</th>
+                    <th class="droite compact">Prix unitaire</th>
+                    <th class="droite compact">Sous-total</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="ligne : ${achat.lignes}">
+                    <td>
+                        <div class="produit-detail">
+                            <span class="avatar-produit" th:data-initiales="${ligne.produit.nom}">RP</span>
+                            <span class="produit-detail__nom" th:text="${ligne.produit.nom}">Produit</span>
+                        </div>
+                    </td>
+                    <td class="droite compact nombre" th:text="${ligne.quantite}">2</td>
+                    <td class="droite compact texte-discret"
+                        th:text="${#numbers.formatDecimal(ligne.prixUnitaire, 1, 'WHITESPACE', 2, 'COMMA')} + ' ' + ${devise}">0,00</td>
+                    <td class="droite compact nombre"
+                        th:text="${#numbers.formatDecimal(ligne.sousTotal, 1, 'WHITESPACE', 2, 'COMMA')} + ' ' + ${devise}">0,00</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="total-pied">
+            <span>Total <small class="texte-discret" th:text="'(' + ${achat.nombreArticles} + ' articles)'">(7 articles)</small></span>
+            <span class="total-pied__montant"
+                  th:text="${#numbers.formatDecimal(achat.total, 1, 'WHITESPACE', 2, 'COMMA')} + ' ' + ${devise}">0,00</span>
+        </div>
+    </section>
 </main>
 
 <th:block th:replace="~{components/layout :: scripts}"></th:block>
+<th:block th:replace="~{components/ticket-modal :: modalTicket}"></th:block>
 </body>
 </html>

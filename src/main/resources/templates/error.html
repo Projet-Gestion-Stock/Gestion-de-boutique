@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{components/layout :: head('Erreur')}"></head>
+<body class="page-erreur"
+      th:with="numero=${status != null ? status : 500},
+               code=${status == 403 or status == 404 or status == 409 ? status : 500},
+               msg=${(status == 404 or status == 409 or status == 400) and !#strings.isEmpty(message) ? message : null}"
+      th:classappend="'erreur--' + ${code}">
+
+<!-- Icônes propres à cette page -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="e-accueil" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+    <symbol id="e-retour" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+    <symbol id="e-reessayer" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol>
+    <symbol id="e-alerte" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+</svg>
+
+<main class="erreur-carte">
+
+    <a th:href="@{/}" class="erreur__logo" aria-label="Retour à l'accueil">
+        <img th:src="@{/images/logo.png}" alt="Gestion de boutique">
+    </a>
+
+    <div class="erreur__visuel">
+        <span class="erreur__code" th:text="${numero}">404</span>
+
+        <!-- Sac de courses : le badge change selon l'erreur -->
+        <svg class="erreur__sac" viewBox="0 0 120 120" aria-hidden="true">
+            <ellipse cx="60" cy="112" rx="34" ry="5" fill="currentColor" opacity=".15"/>
+            <path d="M44 46V36a16 16 0 0 1 32 0v10" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+            <path d="M26 46h68l6 56a6 6 0 0 1-6 6H26a6 6 0 0 1-6-6z" fill="currentColor"/>
+            <circle cx="60" cy="78" r="16" fill="#fff"/>
+
+            <th:block th:if="${code == 403}">
+                <rect x="52" y="76" width="16" height="12" rx="2" fill="currentColor"/>
+                <path d="M55 76v-4a5 5 0 0 1 10 0v4" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+            </th:block>
+            <th:block th:if="${code == 404}">
+                <text x="60" y="87" text-anchor="middle" font-size="26" font-weight="800" fill="currentColor"
+                      font-family="Inter, Arial, sans-serif">?</text>
+            </th:block>
+            <th:block th:if="${code == 409}">
+                <rect x="58" y="68" width="4" height="13" rx="2" fill="currentColor"/>
+                <circle cx="60" cy="87" r="2.6" fill="currentColor"/>
+            </th:block>
+            <th:block th:if="${code == 500}">
+                <path d="M60 66l12 21H48z" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/>
+                <rect x="58.5" y="73" width="3" height="7" rx="1.5" fill="currentColor"/>
+                <circle cx="60" cy="83.5" r="1.7" fill="currentColor"/>
+            </th:block>
+        </svg>
+    </div>
+
+    <h1 class="erreur__titre">
+        <span th:if="${code == 403}">Accès refusé</span>
+        <span th:if="${code == 404}">Page introuvable</span>
+        <span th:if="${code == 409}">Opération impossible</span>
+        <span th:if="${code == 500}">Une erreur est survenue</span>
+    </h1>
+
+    <!-- 409 : le message de la règle de gestion, dans un encadré -->
+    <div class="erreur__avert" th:if="${code == 409}">
+        <svg class="ico"><use href="#e-alerte"/></svg>
+        <span th:text="${msg != null} ? ${msg} : 'Cette opération entre en conflit avec des données existantes.'">Message</span>
+    </div>
+
+    <p class="erreur__texte" th:if="${code == 403}">Vous n'avez pas les droits nécessaires pour accéder à cette page.</p>
+    <p class="erreur__texte" th:if="${code == 404}"
+       th:text="${msg != null} ? ${msg} : 'La page que vous cherchez n''existe pas ou a été déplacée.'">Message</p>
+    <p class="erreur__texte" th:if="${code == 500}"
+       th:text="${msg != null} ? ${msg} : 'Un problème est survenu de notre côté. Réessayez dans un instant ; si le problème continue, contactez l''administrateur.'">Message</p>
+
+    <div class="erreur__actions">
+        <!-- 403 et 404 -->
+        <th:block th:if="${code == 403 or code == 404}">
+            <a th:href="@{/}" class="btn-app btn-app--primaire">
+                <svg class="ico"><use href="#e-accueil"/></svg>Retour à l'accueil
+            </a>
+            <button type="button" class="btn-app" onclick="history.back()">
+                <svg class="ico"><use href="#e-retour"/></svg>Page précédente
+            </button>
+        </th:block>
+
+        <!-- 409 -->
+        <th:block th:if="${code == 409}">
+            <button type="button" class="btn-app btn-app--primaire" onclick="history.back()">
+                <svg class="ico"><use href="#e-retour"/></svg>Retour
+            </button>
+        </th:block>
+
+        <!-- 500 et autres -->
+        <th:block th:if="${code == 500}">
+            <button type="button" class="btn-app btn-app--primaire" onclick="history.back()">
+                <svg class="ico"><use href="#e-reessayer"/></svg>Réessayer
+            </button>
+            <a th:href="@{/}" class="btn-app">
+                <svg class="ico"><use href="#e-accueil"/></svg>Retour à l'accueil
+            </a>
+        </th:block>
+    </div>
+</main>
+
+<p class="erreur__pied">Gestion de boutique</p>
+
+</body>
+</html>

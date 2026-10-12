@@ -24,22 +24,16 @@ public class CategorieController {
         this.categorieService = categorieService;
     }
 
-    // ---------- Liste ----------
+    // ---------- Liste (la création et le renommage se font dans une fenêtre) ----------
 
     @GetMapping
     public String liste(Model model) {
-        model.addAttribute("categories", categorieService.lister());
+        model.addAttribute("categorieForm", CategorieDTO.vide());
+        preparerListe(model, null, false);
         return "categories/liste";
     }
 
     // ---------- Création ----------
-
-    @GetMapping("/nouveau")
-    public String nouveau(Model model) {
-        model.addAttribute("categorieForm", CategorieDTO.vide());
-        preparerFormulaire(model, null);
-        return "categories/formulaire";
-    }
 
     @PostMapping
     public String creer(@Valid @ModelAttribute("categorieForm") CategorieDTO form,
@@ -48,8 +42,8 @@ public class CategorieController {
                         RedirectAttributes redirect) {
         verifierSaisie(form, result, null);
         if (result.hasErrors()) {
-            preparerFormulaire(model, null);
-            return "categories/formulaire";
+            preparerListe(model, null, true);
+            return "categories/liste";
         }
         categorieService.creer(form);
         redirect.addFlashAttribute("succes", "Catégorie « " + form.nom().trim() + " » ajoutée.");
@@ -57,13 +51,6 @@ public class CategorieController {
     }
 
     // ---------- Renommage ----------
-
-    @GetMapping("/{id}/modifier")
-    public String modifier(@PathVariable Integer id, Model model) {
-        model.addAttribute("categorieForm", CategorieDTO.depuis(categorieService.trouver(id)));
-        preparerFormulaire(model, id);
-        return "categories/formulaire";
-    }
 
     @PostMapping("/{id}")
     public String enregistrerModification(@PathVariable Integer id,
@@ -73,8 +60,8 @@ public class CategorieController {
                                           RedirectAttributes redirect) {
         verifierSaisie(form, result, id);
         if (result.hasErrors()) {
-            preparerFormulaire(model, id);
-            return "categories/formulaire";
+            preparerListe(model, id, true);
+            return "categories/liste";
         }
         categorieService.renommer(id, form);
         redirect.addFlashAttribute("succes", "Catégorie renommée en « " + form.nom().trim() + " ».");
@@ -96,10 +83,12 @@ public class CategorieController {
 
     // ---------- Outils ----------
 
-    /** idCategorie = null pour une création, l'id de la catégorie pour un renommage. */
-    private void preparerFormulaire(Model model, Integer idCategorie) {
+    /** idCategorie = null pour une création ; ouvrir = true quand la fenêtre doit se rouvrir (formulaire refusé). */
+    private void preparerListe(Model model, Integer idCategorie, boolean ouvrir) {
+        model.addAttribute("categories", categorieService.lister());
         model.addAttribute("edition", idCategorie != null);
         model.addAttribute("idCategorie", idCategorie);
+        model.addAttribute("ouvrirModal", ouvrir);
     }
 
     private void verifierSaisie(CategorieDTO form, BindingResult result, Integer idExclu) {

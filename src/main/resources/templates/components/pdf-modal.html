@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Aperçu d'un PDF. Tout lien portant data-pdf (url d'aperçu) et data-pdf-titre l'ouvre ;
+     son href reste l'adresse de téléchargement (utilisée par le bouton « Télécharger »). -->
+<th:block th:fragment="modalPdf">
+    <div class="modal fade" id="modalPdf" tabindex="-1" aria-labelledby="modalPdfTitre" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-pdf">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="modal-entete-icone"><svg class="ico"><use href="#n-achats"/></svg></span>
+                    <div>
+                        <h2 class="modal-title" id="modalPdfTitre">Aperçu du PDF</h2>
+                        <p class="modal-sous-titre">Vérifiez le document avant de le télécharger.</p>
+                    </div>
+                    <button type="button" class="btn-icone" data-bs-dismiss="modal" aria-label="Fermer">
+                        <svg class="ico"><use href="#n-fermer"/></svg>
+                    </button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="pdf-fond">
+                        <div class="pdf-fond__texte">Chargement de l'aperçu…</div>
+                        <iframe id="pdfCadre" class="pdf-cadre" title="Aperçu du PDF"></iframe>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-app" data-bs-dismiss="modal">Fermer</button>
+                    <a id="pdfOuvrir" class="btn-app" target="_blank" rel="noopener">Ouvrir dans un onglet</a>
+                    <a id="pdfTelecharger" class="btn-app btn-app--primaire">
+                        <svg class="ico"><use href="#n-telecharger"/></svg>Télécharger
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var fenetre = document.getElementById('modalPdf');
+            var cadre = document.getElementById('pdfCadre');
+            var modal = bootstrap.Modal.getOrCreateInstance(fenetre);
+
+            document.addEventListener('click', function (e) {
+                var lien = e.target.closest('[data-pdf]');
+                if (!lien) { return; }
+                e.preventDefault();
+                document.getElementById('modalPdfTitre').textContent = lien.dataset.pdfTitre || 'Aperçu du PDF';
+                document.getElementById('pdfTelecharger').href = lien.getAttribute('href');   // téléchargement
+                document.getElementById('pdfOuvrir').href = lien.dataset.pdf;                 // affichage dans un onglet
+                cadre.src = lien.dataset.pdf;
+                modal.show();
+            });
+
+            fenetre.addEventListener('hidden.bs.modal', function () { cadre.removeAttribute('src'); });
+        })();
+    </script>
+</th:block>
+
+</body>
+</html>

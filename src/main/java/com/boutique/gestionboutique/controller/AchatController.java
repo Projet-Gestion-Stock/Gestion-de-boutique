@@ -108,6 +108,7 @@ public class AchatController {
                                               @RequestParam(name = "au", required = false)
                                               @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate au,
                                               @RequestParam(name = "caissierId", required = false) Integer caissierId,
+                                              @RequestParam(name = "apercu", defaultValue = "false") boolean apercu,
                                               Principal principal) {
         if (du != null && au != null && du.isAfter(au)) {
             throw new RegleGestionException("La date de fin doit être postérieure ou égale à la date de début.");
@@ -115,7 +116,7 @@ public class AchatController {
         List<Achat> achats = achatService.listerPourExport(du, au, caissierId);
         byte[] pdf = exportPdfService.historiqueAchats(
                 achats, du, au, achatService.libelleCaissier(caissierId), principal.getName());
-        return ReponsePdf.telechargement(pdf, "historique-achats");
+        return ReponsePdf.telechargement(pdf, "historique-achats", apercu);
     }
 
     // ---------- Détail ----------

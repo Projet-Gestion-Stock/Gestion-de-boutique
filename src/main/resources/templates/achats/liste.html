@@ -6,31 +6,42 @@
 
 <nav th:replace="~{components/layout :: navbar}"></nav>
 
-<main class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 m-0">Historique des achats</h1>
-        <div class="d-flex gap-2">
+<main class="contenu">
+
+    <div class="tete-page">
+        <div>
+            <h1 class="tete-page__titre">Historique des achats</h1>
+            <p class="tete-page__sous-titre" th:unless="${erreurFiltre}" th:with="n=${pagination.totalElements}"
+               th:text="|${n} ${filtreActif ? (n > 1 ? 'achats correspondants' : 'achat correspondant') : (n > 1 ? 'achats enregistrés' : 'achat enregistré')} · Total : ${#numbers.formatDecimal(totalAffiche, 1, 'WHITESPACE', 2, 'COMMA')} ${devise}|">
+                28 achats enregistrés</p>
+        </div>
+        <div class="tete-page__actions">
             <a th:unless="${erreurFiltre}" th:href="@{/achats/export/pdf(format='pdf')} + ${filtresUrl}"
-               class="btn btn-outline-danger">Exporter en PDF</a>
-            <a th:href="@{/achats/nouveau}" class="btn btn-primary">Nouvel achat</a>
+               th:attr="data-pdf=@{/achats/export/pdf(apercu='true')} + ${filtresUrl}, data-pdf-titre='Historique des achats'"
+               class="btn-app">
+                <svg class="ico"><use href="#n-telecharger"/></svg>Exporter en PDF
+            </a>
+            <a th:href="@{/achats/nouveau}" class="btn-app btn-app--primaire">
+                <svg class="ico"><use href="#n-plus"/></svg>Nouvel achat
+            </a>
         </div>
     </div>
 
     <div th:replace="~{components/layout :: messages}"></div>
 
-    <!-- Filtres -->
-    <form th:action="@{/achats}" method="get" class="card card-body mb-3">
-        <div class="row g-2 align-items-end">
-            <div class="col-md-3">
-                <label for="du" class="form-label small mb-1">Du</label>
+    <!-- Filtres (règles FI1 à FI6) -->
+    <form th:action="@{/achats}" method="get" class="panneau filtres">
+        <div class="filtres__grille">
+            <div>
+                <label for="du" class="form-label">Du</label>
                 <input type="date" id="du" name="du" th:value="${du}" class="form-control">
             </div>
-            <div class="col-md-3">
-                <label for="au" class="form-label small mb-1">Au</label>
+            <div>
+                <label for="au" class="form-label">Au</label>
                 <input type="date" id="au" name="au" th:value="${au}" class="form-control">
             </div>
-            <div class="col-md-3">
-                <label for="caissierId" class="form-label small mb-1">Caissier</label>
+            <div>
+                <label for="caissierId" class="form-label">Caissier</label>
                 <select id="caissierId" name="caissierId" class="form-select">
                     <option value="">Tous</option>
                     <option th:each="u : ${caissiers}" th:value="${u.id}"
@@ -38,67 +49,89 @@
                             th:selected="${caissierId != null and caissierId == u.id}">Caissier</option>
                 </select>
             </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-primary">Filtrer</button>
-                <a th:if="${filtreActif}" th:href="@{/achats}" class="btn btn-outline-secondary">Réinitialiser</a>
+            <div class="filtres__actions">
+                <button type="submit" class="btn-app btn-app--primaire">Filtrer</button>
+                <a th:if="${filtreActif}" th:href="@{/achats}" class="btn-app">Réinitialiser</a>
             </div>
         </div>
-        <div class="mt-2 small">
-            Raccourcis :
-            <a th:href="@{/achats(du=${aujourdhui}, au=${aujourdhui})}">Aujourd'hui</a> ·
-            <a th:href="@{/achats(du=${il7Jours}, au=${aujourdhui})}">7 derniers jours</a> ·
-            <a th:href="@{/achats(du=${debutMois}, au=${aujourdhui})}">Ce mois</a>
+        <div class="filtres__raccourcis">
+            <span>Raccourcis :</span>
+            <a class="chip-lien" th:href="@{/achats(du=${aujourdhui}, au=${aujourdhui})}">Aujourd'hui</a>
+            <a class="chip-lien" th:href="@{/achats(du=${il7Jours}, au=${aujourdhui})}">7 derniers jours</a>
+            <a class="chip-lien" th:href="@{/achats(du=${debutMois}, au=${aujourdhui})}">Ce mois</a>
         </div>
     </form>
 
-    <div th:if="${erreurFiltre}" class="alert alert-warning" th:text="${erreurFiltre}"></div>
-
-    <p class="text-muted" th:unless="${erreurFiltre}">
-        <strong th:text="${pagination.totalElements}">0</strong> achat(s)
-        <span th:if="${filtreActif}">correspondant au filtre</span>
-        · Total : <strong th:text="${#numbers.formatDecimal(totalAffiche, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</strong>
-    </p>
-
-    <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle">
-            <thead class="table-dark">
-            <tr>
-                <th>N°</th>
-                <th>Date</th>
-                <th>Caissier</th>
-                <th>Client</th>
-                <th class="text-center">Produits</th>
-                <th class="text-end">Total</th>
-                <th class="text-end">Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="a : ${achats}">
-                <td th:text="${a.id}">1</td>
-                <td th:text="${#temporals.format(a.dateAchat, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
-                <td th:text="${a.utilisateur.nomComplet}">Prénom Nom</td>
-                <td th:text="${a.nomClient != null} ? ${a.nomClient} : '-'">-</td>
-                <td class="text-center" th:text="${#lists.size(a.lignes)}">0</td>
-                <td class="text-end"
-                    th:text="${#numbers.formatDecimal(a.total, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
-                <td class="text-end">
-                    <a th:href="@{/achats/{id}(id=${a.id})}" class="btn btn-sm btn-outline-primary">Détail</a>
-                    <a th:href="@{/achats/{id}/ticket(id=${a.id})}" target="_blank" rel="noopener"
-                       class="btn btn-sm btn-outline-success">Ticket</a>
-                </td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(achats)}">
-                <td colspan="7" class="text-center text-muted"
-                    th:text="${filtreActif} ? 'Aucun achat ne correspond à ce filtre.' : 'Aucun achat enregistré.'">Aucun achat.</td>
-            </tr>
-            </tbody>
-        </table>
+    <div class="bandeau bandeau--avert" role="alert" th:if="${erreurFiltre}">
+        <svg class="ico"><use href="#n-alerte"/></svg>
+        <div class="bandeau__texte" th:text="${erreurFiltre}">Erreur</div>
     </div>
 
-    <div th:replace="~{components/pagination :: pagination(${pagination}, '/achats', ${filtresUrl})}"></div>
+    <!-- État vide -->
+    <div class="vide-pointille" th:if="${#lists.isEmpty(achats) and erreurFiltre == null}">
+        <span class="vide__icone vide__icone--neutre"><svg class="ico"><use href="#n-achats"/></svg></span>
+        <strong th:text="${filtreActif} ? 'Aucun achat ne correspond à ce filtre.' : 'Aucun achat enregistré.'">Aucun achat enregistré.</strong>
+        <span class="texte-discret"
+              th:text="${filtreActif} ? 'Modifiez la période ou le caissier.' : 'Commencez à enregistrer vos premières ventes au comptoir pour les retrouver ici.'">Message</span>
+        <a th:if="${filtreActif}" th:href="@{/achats}" class="lien-fleche">Réinitialiser les filtres</a>
+        <a th:unless="${filtreActif}" th:href="@{/achats/nouveau}" class="lien-fleche">Enregistrer un achat</a>
+    </div>
 
+    <!-- Liste -->
+    <section class="panneau" th:unless="${#lists.isEmpty(achats)}">
+        <div class="table-responsive">
+            <table class="tableau-app tableau-app--libre">
+                <thead>
+                <tr>
+                    <th class="compact">N°</th>
+                    <th class="compact">Date</th>
+                    <th>Caissier</th>
+                    <th>Client</th>
+                    <th class="centre compact">Produits</th>
+                    <th class="droite compact">Total</th>
+                    <th class="droite compact">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="a : ${achats}">
+                    <td class="compact"><span class="num-achat" th:text="${#numbers.formatInteger(a.id, 6)}">000128</span></td>
+                    <td class="compact">
+                        <div class="date-cell">
+                            <span th:text="${#temporals.format(a.dateAchat, 'dd/MM/yyyy')}">08/10/2026</span>
+                            <small th:text="${#temporals.format(a.dateAchat, 'HH:mm')}">14:22</small>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="avatar-ligne">
+                            <span class="avatar-mini" th:data-initiales="${a.utilisateur.nomComplet}">AD</span>
+                            <span th:text="${a.utilisateur.nomComplet}">Awa Diop</span>
+                        </div>
+                    </td>
+                    <td th:text="${a.nomClient != null} ? ${a.nomClient} : '-'">-</td>
+                    <td class="centre compact"><span class="chip-nombre" th:text="${#lists.size(a.lignes)}">3</span></td>
+                    <td class="droite compact nombre"
+                        th:text="${#numbers.formatDecimal(a.total, 1, 'WHITESPACE', 2, 'COMMA')} + ' ' + ${devise}">0,00</td>
+                    <td class="droite compact">
+                        <a th:href="@{/achats/{id}(id=${a.id})}" class="btn-icone" title="Voir le détail"
+                           aria-label="Voir le détail de cet achat"><svg class="ico"><use href="#n-oeil"/></svg></a>
+                        <a th:href="@{/achats/{id}/ticket(id=${a.id})}" target="_blank" rel="noopener"
+                           th:attr="data-ticket=@{/achats/{id}/ticket(id=${a.id})}, data-numero=${#numbers.formatInteger(a.id, 6)}"
+                           class="btn-icone" title="Imprimer le ticket"
+                           aria-label="Imprimer le ticket de cet achat"><svg class="ico"><use href="#n-imprimante"/></svg></a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination-zone" th:if="${pagination.totalPages > 1}">
+            <div th:replace="~{components/pagination :: pagination(${pagination}, '/achats', ${filtresUrl})}"></div>
+        </div>
+    </section>
 </main>
 
 <th:block th:replace="~{components/layout :: scripts}"></th:block>
+<th:block th:replace="~{components/ticket-modal :: modalTicket}"></th:block>
+<th:block th:replace="~{components/pdf-modal :: modalPdf}"></th:block>
 </body>
 </html>

@@ -6,96 +6,136 @@
 
 <nav th:replace="~{components/layout :: navbar}"></nav>
 
-<main class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 m-0">Approvisionnement</h1>
-        <div class="d-flex gap-2">
+<main class="contenu">
+
+    <div class="tete-page">
+        <div>
+            <h1 class="tete-page__titre">Livraisons des grossistes</h1>
+            <p class="tete-page__sous-titre" th:unless="${erreurFiltre}" th:with="n=${pagination.totalElements}"
+               th:text="|${n} ${filtreActif ? (n > 1 ? 'livraisons correspondantes' : 'livraison correspondante') : (n > 1 ? 'livraisons enregistrées' : 'livraison enregistrée')} · Coût d''achat total : ${#numbers.formatDecimal(totalAffiche, 1, 'WHITESPACE', 2, 'COMMA')} ${devise}|">
+                14 livraisons enregistrées</p>
+        </div>
+        <div class="tete-page__actions">
             <a th:unless="${erreurFiltre}" th:href="@{/livraisons/export/pdf(format='pdf')} + ${filtresUrl}"
-               class="btn btn-outline-danger">Exporter en PDF</a>
-            <a th:href="@{/grossistes}" class="btn btn-outline-secondary">Gérer les grossistes</a>
-            <a th:href="@{/livraisons/nouvelle}" class="btn btn-primary">Enregistrer une livraison</a>
+               th:attr="data-pdf=@{/livraisons/export/pdf(apercu='true')} + ${filtresUrl}, data-pdf-titre='Historique des livraisons'"
+               class="btn-app">
+                <svg class="ico"><use href="#n-telecharger"/></svg>Exporter en PDF
+            </a>
+            <a th:href="@{/grossistes}" class="btn-app">
+                <svg class="ico"><use href="#n-grossistes"/></svg>Gérer les grossistes
+            </a>
+            <a th:href="@{/livraisons/nouvelle}" class="btn-app btn-app--primaire">
+                <svg class="ico"><use href="#n-plus"/></svg>Enregistrer une livraison
+            </a>
         </div>
     </div>
 
     <div th:replace="~{components/layout :: messages}"></div>
 
-    <!-- Filtres -->
-    <form th:action="@{/livraisons}" method="get" class="card card-body mb-3">
-        <div class="row g-2 align-items-end">
-            <div class="col-md-3">
-                <label for="du" class="form-label small mb-1">Du</label>
+    <!-- Filtres (règles FI1 à FI6) -->
+    <form th:action="@{/livraisons}" method="get" class="panneau filtres">
+        <div class="filtres__grille">
+            <div>
+                <label for="du" class="form-label">Du</label>
                 <input type="date" id="du" name="du" th:value="${du}" class="form-control">
             </div>
-            <div class="col-md-3">
-                <label for="au" class="form-label small mb-1">Au</label>
+            <div>
+                <label for="au" class="form-label">Au</label>
                 <input type="date" id="au" name="au" th:value="${au}" class="form-control">
             </div>
-            <div class="col-md-3">
-                <label for="grossisteId" class="form-label small mb-1">Grossiste</label>
+            <div>
+                <label for="grossisteId" class="form-label">Grossiste</label>
                 <select id="grossisteId" name="grossisteId" class="form-select">
                     <option value="">Tous</option>
                     <option th:each="g : ${grossistes}" th:value="${g.id}" th:text="${g.nom}"
                             th:selected="${grossisteId != null and grossisteId == g.id}">Grossiste</option>
                 </select>
             </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-primary">Filtrer</button>
-                <a th:if="${filtreActif}" th:href="@{/livraisons}" class="btn btn-outline-secondary">Réinitialiser</a>
+            <div class="filtres__actions">
+                <button type="submit" class="btn-app btn-app--primaire">Filtrer</button>
+                <a th:if="${filtreActif}" th:href="@{/livraisons}" class="btn-app">Réinitialiser</a>
             </div>
         </div>
-        <div class="mt-2 small">
-            Raccourcis :
-            <a th:href="@{/livraisons(du=${aujourdhui}, au=${aujourdhui})}">Aujourd'hui</a> ·
-            <a th:href="@{/livraisons(du=${il7Jours}, au=${aujourdhui})}">7 derniers jours</a> ·
-            <a th:href="@{/livraisons(du=${debutMois}, au=${aujourdhui})}">Ce mois</a>
+        <div class="filtres__raccourcis">
+            <span>Raccourcis :</span>
+            <a class="chip-lien" th:href="@{/livraisons(du=${aujourdhui}, au=${aujourdhui})}">Aujourd'hui</a>
+            <a class="chip-lien" th:href="@{/livraisons(du=${il7Jours}, au=${aujourdhui})}">7 derniers jours</a>
+            <a class="chip-lien" th:href="@{/livraisons(du=${debutMois}, au=${aujourdhui})}">Ce mois</a>
         </div>
     </form>
 
-    <div th:if="${erreurFiltre}" class="alert alert-warning" th:text="${erreurFiltre}"></div>
-
-    <p class="text-muted" th:unless="${erreurFiltre}">
-        <strong th:text="${pagination.totalElements}">0</strong> livraison(s)
-        <span th:if="${filtreActif}">correspondant au filtre</span>
-        · Coût d'achat total : <strong th:text="${#numbers.formatDecimal(totalAffiche, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</strong>
-    </p>
-
-    <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle">
-            <thead class="table-dark">
-            <tr>
-                <th>N°</th>
-                <th>Date</th>
-                <th>Grossiste</th>
-                <th>Enregistrée par</th>
-                <th class="text-center">Produits</th>
-                <th class="text-end">Total (coût d'achat)</th>
-                <th class="text-end">Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="l : ${livraisons}">
-                <td th:text="${l.id}">1</td>
-                <td th:text="${#temporals.format(l.dateLivraison, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
-                <td th:text="${l.grossiste.nom}">Grossiste</td>
-                <td th:text="${l.utilisateur.nomComplet}">Prénom Nom</td>
-                <td class="text-center" th:text="${#lists.size(l.lignes)}">0</td>
-                <td class="text-end"
-                    th:text="${#numbers.formatDecimal(l.total, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
-                <td class="text-end">
-                    <a th:href="@{/livraisons/{id}(id=${l.id})}" class="btn btn-sm btn-outline-primary">Détail</a>
-                </td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(livraisons)}">
-                <td colspan="7" class="text-center text-muted"
-                    th:text="${filtreActif} ? 'Aucune livraison ne correspond à ce filtre.' : 'Aucune livraison enregistrée.'">Aucune livraison.</td>            </tr>
-            </tbody>
-        </table>
+    <div class="bandeau bandeau--avert" role="alert" th:if="${erreurFiltre}">
+        <svg class="ico"><use href="#n-alerte"/></svg>
+        <div class="bandeau__texte" th:text="${erreurFiltre}">Erreur</div>
     </div>
 
-    <div th:replace="~{components/pagination :: pagination(${pagination}, '/livraisons', ${filtresUrl})}"></div>
+    <!-- État vide -->
+    <div class="vide-pointille" th:if="${#lists.isEmpty(livraisons) and erreurFiltre == null}">
+        <span class="vide__icone vide__icone--neutre"><svg class="ico"><use href="#n-livraison"/></svg></span>
+        <strong th:text="${filtreActif} ? 'Aucune livraison ne correspond à ce filtre.' : 'Aucune livraison enregistrée.'">Aucune livraison enregistrée.</strong>
+        <span class="texte-discret"
+              th:text="${filtreActif} ? 'Modifiez la période ou le grossiste.' : 'Enregistrez la première livraison pour alimenter votre stock.'">Message</span>
+        <a th:if="${filtreActif}" th:href="@{/livraisons}" class="lien-fleche">Réinitialiser les filtres</a>
+        <a th:unless="${filtreActif}" th:href="@{/livraisons/nouvelle}" class="lien-fleche">Enregistrer une livraison</a>
+    </div>
 
+    <!-- Liste -->
+    <section class="panneau" th:unless="${#lists.isEmpty(livraisons)}">
+        <div class="table-responsive">
+            <table class="tableau-app tableau-app--libre">
+                <thead>
+                <tr>
+                    <th class="compact">N°</th>
+                    <th class="compact">Date</th>
+                    <th>Grossiste</th>
+                    <th>Enregistrée par</th>
+                    <th class="centre compact">Produits</th>
+                    <th class="droite compact">Total (coût d'achat)</th>
+                    <th class="droite compact">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="l : ${livraisons}">
+                    <td class="compact"><span class="num-achat" th:text="${#numbers.formatInteger(l.id, 6)}">000014</span></td>
+                    <td class="compact">
+                        <div class="date-cell">
+                            <span th:text="${#temporals.format(l.dateLivraison, 'dd/MM/yyyy')}">08/10/2026</span>
+                            <small th:text="${#temporals.format(l.dateLivraison, 'HH:mm')}">11:15</small>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="grossiste-ligne">
+                            <span class="pastille-icone" th:classappend="${'ic-' + (l.grossiste.id % 5)}">
+                                <svg class="ico"><use href="#n-livraison"/></svg>
+                            </span>
+                            <span th:text="${l.grossiste.nom}">Sahel Distribution</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="avatar-ligne">
+                            <span class="avatar-mini" th:data-initiales="${l.utilisateur.nomComplet}">AD</span>
+                            <span th:text="${l.utilisateur.nomComplet}">Awa Diop</span>
+                        </div>
+                    </td>
+                    <td class="centre compact"><span class="chip-nombre" th:text="${#lists.size(l.lignes)}">6</span></td>
+                    <td class="droite compact nombre"
+                        th:text="${#numbers.formatDecimal(l.total, 1, 'WHITESPACE', 2, 'COMMA')} + ' ' + ${devise}">0,00</td>
+                    <td class="droite compact">
+                        <a th:href="@{/livraisons/{id}(id=${l.id})}" class="btn-icone" title="Voir le détail"
+                           aria-label="Voir le détail de cette livraison"><svg class="ico"><use href="#n-oeil"/></svg></a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination-zone" th:if="${pagination.totalPages > 1}">
+            <div th:replace="~{components/pagination :: pagination(${pagination}, '/livraisons', ${filtresUrl})}"></div>
+        </div>
+    </section>
 </main>
 
 <th:block th:replace="~{components/layout :: scripts}"></th:block>
+<th:block th:replace="~{components/pdf-modal :: modalPdf}"></th:block>
 </body>
 </html>

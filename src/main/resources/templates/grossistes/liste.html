@@ -1,52 +1,202 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:replace="~{components/layout :: head('Grossistes')}"></head>
+<head th:replace="~{components/layout :: head('Approvisionnement')}"></head>
 <body>
 
 <nav th:replace="~{components/layout :: navbar}"></nav>
 
-<main class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 m-0">Grossistes</h1>
-        <div class="d-flex gap-2">
-            <a th:href="@{/livraisons}" class="btn btn-outline-secondary">Retour à l'approvisionnement</a>
-            <a th:href="@{/grossistes/nouveau}" class="btn btn-primary">Ajouter un grossiste</a>
+<main class="contenu">
+
+    <div class="tete-page">
+        <div>
+            <h1 class="tete-page__titre">Grossistes</h1>
+            <p class="tete-page__sous-titre" th:with="n=${#lists.size(grossistes)}"
+               th:text="|${n} ${n > 1 ? 'grossistes' : 'grossiste'}|">5 grossistes</p>
+        </div>
+        <div class="tete-page__actions">
+            <a th:href="@{/livraisons}" class="btn-app">&larr; Retour à l'approvisionnement</a>
+            <button type="button" class="btn-app btn-app--primaire btn-ajouter">
+                <svg class="ico"><use href="#n-plus"/></svg>Ajouter un grossiste
+            </button>
         </div>
     </div>
 
     <div th:replace="~{components/layout :: messages}"></div>
 
-    <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle">
-            <thead class="table-dark">
-            <tr>
-                <th>Nom</th>
-                <th>Téléphone</th>
-                <th>Adresse</th>
-                <th>E-mail</th>
-                <th class="text-end">Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="g : ${grossistes}">
-                <td th:text="${g.nom}">Sahel Distribution</td>
-                <td th:text="${g.telephone != null} ? ${g.telephone} : '-'">-</td>
-                <td th:text="${g.adresse != null} ? ${g.adresse} : '-'">-</td>
-                <td th:text="${g.email != null} ? ${g.email} : '-'">-</td>
-                <td class="text-end">
-                    <a th:href="@{/grossistes/{id}/modifier(id=${g.id})}"
-                       class="btn btn-sm btn-outline-primary">Modifier</a>
-                </td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(grossistes)}">
-                <td colspan="5" class="text-center text-muted">Aucun grossiste.</td>
-            </tr>
-            </tbody>
-        </table>
+    <!-- État vide -->
+    <div class="vide-pointille" th:if="${#lists.isEmpty(grossistes)}">
+        <span class="vide__icone vide__icone--neutre"><svg class="ico"><use href="#n-livraison"/></svg></span>
+        <strong>Aucun grossiste.</strong>
+        <span class="texte-discret">Ajoutez vos fournisseurs pour enregistrer les livraisons.</span>
+        <button type="button" class="btn-app btn-app--primaire btn-ajouter">
+            <svg class="ico"><use href="#n-plus"/></svg>Ajouter un grossiste
+        </button>
     </div>
+
+    <!-- Liste -->
+    <section class="panneau" th:unless="${#lists.isEmpty(grossistes)}">
+        <div class="table-responsive">
+            <table class="tableau-app tableau-app--libre">
+                <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th class="compact">Téléphone</th>
+                    <th>Adresse</th>
+                    <th>E-mail</th>
+                    <th class="droite compact">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="g : ${grossistes}">
+                    <td>
+                        <div class="identite">
+                            <span class="avatar-carre" th:classappend="${'ic-' + (g.id % 5)}"
+                                  th:data-initiales="${g.nom}">SD</span>
+                            <span class="identite__nom" th:text="${g.nom}">Sahel Distribution</span>
+                        </div>
+                    </td>
+                    <td class="compact">
+                        <span class="mono" th:if="${g.telephone != null}" th:text="${g.telephone}">+221 33 824 15 20</span>
+                        <span class="texte-discret" th:if="${g.telephone == null}">-</span>
+                    </td>
+                    <td>
+                        <span th:if="${g.adresse != null}" th:text="${g.adresse}">Zone industrielle de Yoff, Dakar</span>
+                        <span class="texte-discret" th:if="${g.adresse == null}">-</span>
+                    </td>
+                    <td>
+                        <a class="lien-mail" th:if="${g.email != null}" th:href="'mailto:' + ${g.email}"
+                           th:text="${g.email}">contact@exemple.sn</a>
+                        <span class="texte-discret" th:if="${g.email == null}">-</span>
+                    </td>
+                    <td class="droite compact">
+                        <button type="button" class="btn-icone btn-modifier" title="Modifier"
+                                aria-label="Modifier ce grossiste"
+                                th:attr="data-id=${g.id}, data-nom=${g.nom}, data-telephone=${g.telephone}, data-adresse=${g.adresse}, data-email=${g.email}">
+                            <svg class="ico"><use href="#n-modifier"/></svg>
+                        </button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
 </main>
 
+<!-- ======================= Fenêtre d'ajout / modification ======================= -->
+<div class="modal fade" id="modalGrossiste" tabindex="-1" aria-labelledby="modalGrossisteTitre" aria-hidden="true"
+     th:data-ouvrir="${ouvrirModal}">
+    <div class="modal-dialog modal-dialog-centered modal-moyen">
+        <form class="modal-content" id="formGrossiste" th:object="${grossisteForm}"
+              th:action="${edition} ? @{/grossistes/{id}(id=${idGrossiste})} : @{/grossistes}"
+              th:data-action-creation="@{/grossistes}"
+              method="post" novalidate>
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title" id="modalGrossisteTitre"
+                        th:text="${edition} ? 'Modifier le grossiste' : 'Ajouter un grossiste'">Ajouter un grossiste</h2>
+                    <p class="modal-sous-titre">Renseignez les coordonnées de votre fournisseur.</p>
+                </div>
+                <button type="button" class="btn-icone" data-bs-dismiss="modal" aria-label="Fermer">
+                    <svg class="ico"><use href="#n-fermer"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label for="nom" class="form-label">Nom du grossiste <span class="text-danger">*</span></label>
+                        <input type="text" id="nom" th:field="*{nom}" class="form-control" maxlength="150"
+                               placeholder="Ex : Sahel Distribution"
+                               th:classappend="${#fields.hasErrors('nom')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{nom}">Erreur</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="telephone" class="form-label">Téléphone <span class="texte-discret">(facultatif)</span></label>
+                        <div class="champ-icone">
+                            <svg class="ico"><use href="#n-telephone"/></svg>
+                            <input type="text" id="telephone" th:field="*{telephone}" class="form-control" maxlength="30"
+                                   placeholder="+221 77 650 18 32"
+                                   th:classappend="${#fields.hasErrors('telephone')} ? 'is-invalid'">
+                            <div class="invalid-feedback" th:errors="*{telephone}">Erreur</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="email" class="form-label">E-mail <span class="texte-discret">(facultatif)</span></label>
+                        <div class="champ-icone">
+                            <svg class="ico"><use href="#n-mail"/></svg>
+                            <input type="text" id="email" th:field="*{email}" class="form-control" maxlength="150"
+                                   placeholder="contact@fournisseur.sn"
+                                   th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'">
+                            <div class="invalid-feedback" th:errors="*{email}">Erreur</div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <label for="adresse" class="form-label">Adresse <span class="texte-discret">(facultative)</span></label>
+                        <div class="champ-icone">
+                            <svg class="ico"><use href="#n-pin"/></svg>
+                            <textarea id="adresse" th:field="*{adresse}" class="form-control" rows="2" maxlength="255"
+                                      placeholder="Ex : Port autonome de Dakar, Hangar 12"
+                                      th:classappend="${#fields.hasErrors('adresse')} ? 'is-invalid'"></textarea>
+                            <div class="invalid-feedback" th:errors="*{adresse}">Erreur</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-app" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn-app btn-app--primaire">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <th:block th:replace="~{components/layout :: scripts}"></th:block>
+
+<script>
+    (function () {
+        var modalEl = document.getElementById('modalGrossiste');
+        var form = document.getElementById('formGrossiste');
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        var urlBase = form.dataset.actionCreation;   // « /grossistes »
+        var champs = {
+            nom: document.getElementById('nom'),
+            telephone: document.getElementById('telephone'),
+            email: document.getElementById('email'),
+            adresse: document.getElementById('adresse')
+        };
+
+        function effacerErreurs() {
+            form.querySelectorAll('.is-invalid').forEach(function (e) { e.classList.remove('is-invalid'); });
+        }
+
+        function ouvrir(edition, d) {
+            form.action = edition ? urlBase + '/' + d.id : urlBase;
+            document.getElementById('modalGrossisteTitre').textContent =
+                edition ? 'Modifier le grossiste' : 'Ajouter un grossiste';
+            champs.nom.value = edition ? d.nom : '';
+            champs.telephone.value = edition ? (d.telephone || '') : '';
+            champs.email.value = edition ? (d.email || '') : '';
+            champs.adresse.value = edition ? (d.adresse || '') : '';
+            effacerErreurs();
+            modal.show();
+        }
+
+        modalEl.addEventListener('shown.bs.modal', function () { champs.nom.focus(); });
+
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('.btn-ajouter')) { ouvrir(false, null); return; }
+            var modifier = e.target.closest('.btn-modifier');
+            if (modifier) { ouvrir(true, modifier.dataset); }
+        });
+
+        // Après un refus du serveur : la fenêtre se rouvre avec les messages d'erreur
+        if (modalEl.dataset.ouvrir === 'true') { modal.show(); }
+    })();
+</script>
 </body>
 </html>

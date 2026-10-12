@@ -61,11 +61,15 @@ public class ProfilController {
 
     // ---------- Mot de passe ----------
 
+    private static String pageMotDePasse(boolean premiereConnexion) {
+        return premiereConnexion ? "profil/premiere-connexion" : "profil/mot-de-passe";
+    }
+
     @GetMapping("/mot-de-passe")
     public String formulaireMotDePasse(@AuthenticationPrincipal UtilisateurDetails user, Model model) {
         model.addAttribute("motDePasseForm", MotDePasseDTO.vide());
         model.addAttribute("premiereConnexion", user.isDoitChangerMotDePasse());
-        return "profil/mot-de-passe";
+        return pageMotDePasse(user.isDoitChangerMotDePasse());
     }
 
     @PostMapping("/mot-de-passe")
@@ -98,7 +102,7 @@ public class ProfilController {
 
         if (result.hasErrors()) {
             model.addAttribute("premiereConnexion", premiereConnexion);
-            return "profil/mot-de-passe";
+            return pageMotDePasse(premiereConnexion);
         }
 
         utilisateurService.definirMotDePasse(identifiant, form.nouveauMotDePasse());

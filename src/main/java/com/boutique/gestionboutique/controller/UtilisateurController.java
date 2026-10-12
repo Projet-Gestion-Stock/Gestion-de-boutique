@@ -27,22 +27,16 @@ public class UtilisateurController {
         this.utilisateurService = utilisateurService;
     }
 
-    // ---------- Liste ----------
+    // ---------- Liste (la création se fait dans une fenêtre) ----------
 
     @GetMapping
     public String liste(Model model) {
-        model.addAttribute("utilisateurs", utilisateurService.lister());
+        model.addAttribute("utilisateurForm", UtilisateurDTO.vide());
+        preparerListe(model, false);
         return "utilisateurs/liste";
     }
 
     // ---------- Création ----------
-
-    @GetMapping("/nouveau")
-    public String nouveau(Model model) {
-        model.addAttribute("utilisateurForm", UtilisateurDTO.vide());
-        model.addAttribute("roles", Role.values());
-        return "utilisateurs/formulaire";
-    }
 
     @PostMapping
     public String creer(@Valid @ModelAttribute("utilisateurForm") UtilisateurDTO form,
@@ -51,8 +45,8 @@ public class UtilisateurController {
                         RedirectAttributes redirect) {
         verifierSaisie(form, result);
         if (result.hasErrors()) {
-            model.addAttribute("roles", Role.values());
-            return "utilisateurs/formulaire";
+            preparerListe(model, true);   // la fenêtre se rouvre avec les messages d'erreur
+            return "utilisateurs/liste";
         }
         utilisateurService.creer(form);
         redirect.addFlashAttribute("succes",
@@ -103,6 +97,12 @@ public class UtilisateurController {
     }
 
     // ---------- Outils ----------
+
+    private void preparerListe(Model model, boolean ouvrir) {
+        model.addAttribute("utilisateurs", utilisateurService.lister());
+        model.addAttribute("roles", Role.values());
+        model.addAttribute("ouvrirModal", ouvrir);
+    }
 
     /** Contrôles qui dépendent de la base ou de plusieurs champs (unicité, confirmation du mot de passe). */
     private void verifierSaisie(UtilisateurDTO form, BindingResult result) {

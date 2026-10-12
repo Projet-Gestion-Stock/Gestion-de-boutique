@@ -1,65 +1,96 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:replace="~{components/layout :: head('Mot de passe')}"></head>
+<head th:replace="~{components/layout :: head('Mon profil')}"></head>
 <body>
 
-<th:block th:if="${premiereConnexion}">
-    <nav th:replace="~{components/layout :: navbarMinimal}"></nav>
-</th:block>
-<th:block th:unless="${premiereConnexion}">
-    <nav th:replace="~{components/layout :: navbar}"></nav>
-</th:block>
+<nav th:replace="~{components/layout :: navbar}"></nav>
 
-<main class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
+<main class="contenu">
 
-            <h1 class="h3 mb-3"
-                th:text="${premiereConnexion} ? 'Définissez votre mot de passe' : 'Changer mon mot de passe'">Mot de passe</h1>
+    <div th:replace="~{components/layout :: messages}"></div>
 
-            <div th:if="${premiereConnexion}" class="alert alert-warning">
-                C'est votre première connexion. Pour des raisons de sécurité, vous devez choisir votre propre
-                mot de passe avant de continuer.
+    <div class="carte-mdp-zone mx-auto" style="max-width: 480px;">
+        <a th:href="@{/profil}" class="lien-retour">&larr; Retour à mon profil</a>
+
+        <section class="panneau carte-mdp" style="margin-top: 0;">
+            <div class="carte-mdp__tete">
+                <span class="carte-mdp__icone"><svg class="ico"><use href="#n-bouclier"/></svg></span>
+                <div>
+                    <h1 class="carte-mdp__titre">Changer mon mot de passe</h1>
+                    <p class="panneau__sous-titre">Mettez à jour vos identifiants pour sécuriser votre compte.</p>
+                </div>
             </div>
 
-            <form th:object="${motDePasseForm}" th:action="@{/profil/mot-de-passe}" method="post" novalidate>
+            <form id="formMotDePasse" th:object="${motDePasseForm}" th:action="@{/profil/mot-de-passe}"
+                  method="post" novalidate>
 
-                <div class="mb-3" th:unless="${premiereConnexion}">
-                    <label for="motDePasseActuel" class="form-label">Mot de passe actuel</label>
-                    <input type="password" id="motDePasseActuel" th:field="*{motDePasseActuel}"
-                           class="form-control"
-                           th:classappend="${#fields.hasErrors('motDePasseActuel')} ? 'is-invalid'"
-                           autocomplete="current-password">
-                    <div class="invalid-feedback" th:errors="*{motDePasseActuel}">Erreur</div>
+                <div class="mb-3">
+                    <label for="motDePasseActuel" class="form-label">Mot de passe actuel <span class="text-danger">*</span></label>
+                    <div class="champ-icone champ-mdp">
+                        <svg class="ico"><use href="#n-cle"/></svg>
+                        <input type="password" id="motDePasseActuel" th:field="*{motDePasseActuel}" class="form-control"
+                               autocomplete="current-password"
+                               th:classappend="${#fields.hasErrors('motDePasseActuel')} ? 'is-invalid'">
+                        <button type="button" class="btn-oeil" aria-label="Afficher ou masquer le mot de passe">
+                            <svg class="ico"><use href="#n-oeil"/></svg>
+                        </button>
+                        <div class="invalid-feedback" th:errors="*{motDePasseActuel}">Erreur</div>
+                    </div>
                 </div>
 
                 <div class="mb-3">
-                    <label for="nouveauMotDePasse" class="form-label">Nouveau mot de passe</label>
-                    <input type="password" id="nouveauMotDePasse" th:field="*{nouveauMotDePasse}"
-                           class="form-control"
-                           th:classappend="${#fields.hasErrors('nouveauMotDePasse')} ? 'is-invalid'"
-                           autocomplete="new-password">
-                    <div class="form-text">Au moins 6 caractères, différent du mot de passe actuel.</div>
-                    <div class="invalid-feedback" th:errors="*{nouveauMotDePasse}">Erreur</div>
+                    <label for="nouveauMotDePasse" class="form-label">Nouveau mot de passe <span class="text-danger">*</span></label>
+                    <div class="champ-icone champ-mdp">
+                        <svg class="ico"><use href="#n-cadenas"/></svg>
+                        <input type="password" id="nouveauMotDePasse" th:field="*{nouveauMotDePasse}" class="form-control"
+                               autocomplete="new-password"
+                               th:classappend="${#fields.hasErrors('nouveauMotDePasse')} ? 'is-invalid'">
+                        <button type="button" class="btn-oeil" aria-label="Afficher ou masquer le mot de passe">
+                            <svg class="ico"><use href="#n-oeil"/></svg>
+                        </button>
+                        <div class="invalid-feedback" th:errors="*{nouveauMotDePasse}">Erreur</div>
+                    </div>
+                    <div class="aide-champ">
+                        <svg class="ico"><use href="#n-info"/></svg>Au moins 6 caractères, différent du mot de passe actuel.
+                    </div>
                 </div>
 
                 <div class="mb-3">
-                    <label for="confirmation" class="form-label">Confirmer le nouveau mot de passe</label>
-                    <input type="password" id="confirmation" th:field="*{confirmation}"
-                           class="form-control"
-                           th:classappend="${#fields.hasErrors('confirmation')} ? 'is-invalid'"
-                           autocomplete="new-password">
-                    <div class="invalid-feedback" th:errors="*{confirmation}">Erreur</div>
+                    <label for="confirmation" class="form-label">Confirmer le nouveau mot de passe <span class="text-danger">*</span></label>
+                    <div class="champ-icone champ-mdp">
+                        <svg class="ico"><use href="#n-bouclier"/></svg>
+                        <input type="password" id="confirmation" th:field="*{confirmation}" class="form-control"
+                               autocomplete="new-password"
+                               th:classappend="${#fields.hasErrors('confirmation')} ? 'is-invalid'">
+                        <button type="button" class="btn-oeil" aria-label="Afficher ou masquer le mot de passe">
+                            <svg class="ico"><use href="#n-oeil"/></svg>
+                        </button>
+                        <div class="invalid-feedback" th:errors="*{confirmation}">Erreur</div>
+                    </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary">Enregistrer</button>
-                <a th:unless="${premiereConnexion}" th:href="@{/profil}" class="btn btn-outline-secondary">Annuler</a>
+                <div class="actions-formulaire actions-formulaire--droite">
+                    <a th:href="@{/profil}" class="btn-app">Annuler</a>
+                    <button type="submit" class="btn-app btn-app--primaire">
+                        <svg class="ico"><use href="#n-check"/></svg>Enregistrer
+                    </button>
+                </div>
             </form>
-        </div>
+        </section>
     </div>
 </main>
 
 <th:block th:replace="~{components/layout :: scripts}"></th:block>
+
+<script>
+    // Afficher / masquer un mot de passe
+    document.getElementById('formMotDePasse').addEventListener('click', function (e) {
+        var oeil = e.target.closest('.btn-oeil');
+        if (!oeil) { return; }
+        var champ = oeil.parentElement.querySelector('input');
+        champ.type = champ.type === 'password' ? 'text' : 'password';
+    });
+</script>
 </body>
 </html>

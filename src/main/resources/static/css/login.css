@@ -316,3 +316,36 @@ body {
     .marque__titre { font-size: 24px; line-height: 32px; }
     .login__formulaire { padding: 2rem 1.5rem; }
 }
+
+/* ---------- Première connexion ---------- */
+.marque__badge {
+    position: relative; z-index: 1; align-self: flex-start;
+    display: inline-flex; align-items: center; gap: .5rem; padding: .25rem .75rem;
+    border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 999px; background: rgba(255, 255, 255, 0.06);
+    color: #BFD5FE; font-size: 10px; line-height: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+}
+.marque__badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #7DB0F7; }
+.atouts--cartes { border-top: 0; padding-top: 0; }
+.atouts--cartes li {
+    padding: .75rem 1rem; border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px; background: rgba(255, 255, 255, 0.05);
+}
+.formulaire__icone {
+    display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 1rem;
+    border-radius: 10px; background: #FEF3C7; color: #92400E;
+}
+.champ--erreur input { border-color: #B91C1C; background: #FEF2F2; }
+.champ__message { display: flex; align-items: center; gap: .375rem; margin-top: .375rem; color: #B91C1C; font-size: 12px; line-height: 16px; }
+.champ__message .icone { width: 14px; height: 14px; }
+.regles { list-style: none; margin: 0 0 1.25rem; padding: .875rem 1rem; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; }
+.regles li { display: flex; align-items: center; gap: .5rem; margin: .25rem 0; font-size: 12px; line-height: 16px; color: var(--texte-discret); }
+.regles li .icone { width: 16px; height: 16px; color: #CBD5E1; }
+.regles li.ok { color: #166534; }
+.regles li.ok .icone { color: #16A34A; }
+.actions-centre { display: flex; justify-content: center; margin-top: 1rem; }
+.lien-discret {
+    display: inline-flex; align-items: center; gap: .375rem; padding: .25rem .5rem; border: 0; background: none;
+    color: var(--texte-discret); font: inherit; font-size: 13px; cursor: pointer;
+}
+.lien-discret:hover { color: var(--marine); }
+.lien-discret .icone { width: 16px; height: 16px; }

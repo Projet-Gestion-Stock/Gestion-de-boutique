@@ -1,80 +1,110 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:replace="~{components/layout :: head('Livraison')}"></head>
+<head th:replace="~{components/layout :: head('Approvisionnement')}"></head>
 <body>
 
 <nav th:replace="~{components/layout :: navbar}"></nav>
 
-<main class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 m-0">Livraison n° <span th:text="${livraison.id}">1</span></h1>
-        <a th:href="@{/livraisons}" class="btn btn-outline-secondary">Retour à l'historique</a>
-    </div>
+<main class="contenu">
 
     <div th:replace="~{components/layout :: messages}"></div>
 
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="text-muted small">Date</div>
-                    <div th:text="${#temporals.format(livraison.dateLivraison, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</div>
-                </div>
-                <div class="col-md-4">
-                    <div class="text-muted small">Grossiste</div>
-                    <div th:text="${livraison.grossiste.nom}">Grossiste</div>
-                </div>
-                <div class="col-md-4">
-                    <div class="text-muted small">Enregistrée par</div>
-                    <div th:text="${livraison.utilisateur.nomComplet}">Prénom Nom</div>
-                </div>
-            </div>
+    <a th:href="@{/livraisons}" class="lien-retour">&larr; Retour à l'historique</a>
+
+    <div class="tete-page">
+        <h1 class="tete-page__titre">Livraison n° <span th:text="${#numbers.formatInteger(livraison.id, 6)}">000014</span></h1>
+        <div class="tete-page__actions">
+            <a th:href="@{/livraisons/nouvelle}" class="btn-app">
+                <svg class="ico"><use href="#n-plus"/></svg>Enregistrer une autre livraison
+            </a>
         </div>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-striped align-middle">
-            <thead class="table-dark">
-            <tr>
-                <th>Produit</th>
-                <th class="text-end">Quantité</th>
-                <th class="text-end">Prix d'achat</th>
-                <th>Péremption</th>
-                <th class="text-end">Restant</th>
-                <th class="text-end">Sous-total</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="ligne : ${livraison.lignes}">
-                <td th:text="${ligne.produit.nom}">Produit</td>
-                <td class="text-end" th:text="${ligne.quantite}">0</td>
-                <td class="text-end"
-                    th:text="${#numbers.formatDecimal(ligne.prixAchat, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
-                <td>
-                    <span th:if="${ligne.datePeremption == null}" class="text-muted">-</span>
-                    <span th:if="${ligne.datePeremption != null}"
-                          th:text="${#temporals.format(ligne.datePeremption, 'dd/MM/yyyy')}">01/01/2027</span>
-                    <span th:if="${ligne.perime}" class="badge bg-danger ms-1">Périmé</span>
-                </td>
-                <td class="text-end">
-                    <span th:text="${ligne.quantiteRestante} + ' / ' + ${ligne.quantite}">0 / 0</span>
-                    <div class="small text-muted" th:if="${ligne.quantiteRetiree > 0}"
-                         th:text="${ligne.quantiteRetiree} + ' retirée(s)'">retirée(s)</div>
-                </td>
-                <td class="text-end"
-                    th:text="${#numbers.formatDecimal(ligne.sousTotal, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
-            </tr>
-            </tbody>
-            <tfoot>
-            <tr class="fw-bold">
-                <td colspan="5" class="text-end">Total</td>
-                <td class="text-end"
-                    th:text="${#numbers.formatDecimal(livraison.total, 1, 'WHITESPACE', 2, 'COMMA')}">0,00</td>
-            </tr>
-            </tfoot>
-        </table>
+    <div class="cartes-resume" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+        <div class="resume">
+            <span class="resume__libelle">Date</span>
+            <span class="resume__valeur">
+                <span th:text="${#temporals.format(livraison.dateLivraison, 'dd/MM/yyyy')}">08/10/2026</span>
+                <small th:text="${#temporals.format(livraison.dateLivraison, 'HH:mm')}">09:12</small>
+            </span>
+        </div>
+        <div class="resume">
+            <span class="resume__libelle">Grossiste</span>
+            <span class="resume__valeur">
+                <span class="pastille-icone" th:classappend="${'ic-' + (livraison.grossiste.id % 5)}">
+                    <svg class="ico"><use href="#n-livraison"/></svg>
+                </span>
+                <span th:text="${livraison.grossiste.nom}">Sahel Distribution</span>
+            </span>
+        </div>
+        <div class="resume">
+            <span class="resume__libelle">Enregistrée par</span>
+            <span class="resume__valeur">
+                <span class="avatar-mini" th:data-initiales="${livraison.utilisateur.nomComplet}">AD</span>
+                <span th:text="${livraison.utilisateur.nomComplet}">Awa Diop</span>
+            </span>
+        </div>
     </div>
+
+    <section class="panneau">
+        <div class="panneau__tete">
+            <div>
+                <h2 class="panneau__titre">Produits reçus</h2>
+                <p class="panneau__sous-titre"
+                   th:with="n=${#lists.size(livraison.lignes)}"
+                   th:text="|${n} ${n > 1 ? 'références' : 'référence'}|">3 références</p>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="tableau-app tableau-app--libre">
+                <thead>
+                <tr>
+                    <th>Produit</th>
+                    <th class="droite compact">Quantité</th>
+                    <th class="droite compact">Prix d'achat</th>
+                    <th class="compact">Péremption</th>
+                    <th class="droite compact">Restant</th>
+                    <th class="droite compact">Sous-total</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="ligne : ${livraison.lignes}">
+                    <td>
+                        <div class="produit-detail">
+                            <span class="avatar-produit" th:data-initiales="${ligne.produit.nom}">RP</span>
+                            <span class="produit-detail__nom" th:text="${ligne.produit.nom}">Produit</span>
+                        </div>
+                    </td>
+                    <td class="droite compact nombre" th:text="${ligne.quantite}">40</td>
+                    <td class="droite compact texte-discret"
+                        th:text="${#numbers.formatDecimal(ligne.prixAchat, 1, 'WHITESPACE', 2, 'COMMA')} + ' ' + ${devise}">0,00</td>
+                    <td class="compact">
+                        <span th:if="${ligne.datePeremption == null}" class="texte-discret">-</span>
+                        <div class="perem" th:if="${ligne.datePeremption != null}">
+                            <span class="nombre" th:text="${#temporals.format(ligne.datePeremption, 'dd/MM/yyyy')}">01/01/2027</span>
+                            <span th:if="${ligne.perime}" class="pastille pastille--rouge">Périmé</span>
+                        </div>
+                    </td>
+                    <td class="droite compact">
+                        <span class="nombre" th:text="${ligne.quantiteRestante} + ' / ' + ${ligne.quantite}">0 / 0</span>
+                        <div class="stock__seuil" th:if="${ligne.quantiteRetiree > 0}"
+                             th:text="${ligne.quantiteRetiree} + ' retirée(s)'">retirée(s)</div>
+                    </td>
+                    <td class="droite compact nombre"
+                        th:text="${#numbers.formatDecimal(ligne.sousTotal, 1, 'WHITESPACE', 2, 'COMMA')} + ' ' + ${devise}">0,00</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="total-pied">
+            <span>Total <small class="texte-discret">(coût d'achat)</small></span>
+            <span class="total-pied__montant"
+                  th:text="${#numbers.formatDecimal(livraison.total, 1, 'WHITESPACE', 2, 'COMMA')} + ' ' + ${devise}">0,00</span>
+        </div>
+    </section>
 </main>
 
 <th:block th:replace="~{components/layout :: scripts}"></th:block>

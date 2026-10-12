@@ -109,6 +109,7 @@ public class LivraisonController {
                                               @RequestParam(name = "au", required = false)
                                               @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate au,
                                               @RequestParam(name = "grossisteId", required = false) Integer grossisteId,
+                                              @RequestParam(name = "apercu", defaultValue = "false") boolean apercu,
                                               Principal principal) {
         if (du != null && au != null && du.isAfter(au)) {
             throw new RegleGestionException("La date de fin doit être postérieure ou égale à la date de début.");
@@ -116,7 +117,7 @@ public class LivraisonController {
         List<Livraison> livraisons = livraisonService.listerPourExport(du, au, grossisteId);
         byte[] pdf = exportPdfService.historiqueLivraisons(
                 livraisons, du, au, livraisonService.libelleGrossiste(grossisteId), principal.getName());
-        return ReponsePdf.telechargement(pdf, "historique-livraisons");
+        return ReponsePdf.telechargement(pdf, "historique-livraisons", apercu);
     }
 
     // ---------- Détail ----------

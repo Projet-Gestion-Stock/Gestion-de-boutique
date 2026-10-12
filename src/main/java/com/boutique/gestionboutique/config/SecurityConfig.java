@@ -23,6 +23,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .headers(headers -> headers
+                        // L'aperçu du ticket s'affiche dans une fenêtre (iframe de la même application)
+                        .frameOptions(frame -> frame.sameOrigin()))
+
                 .authorizeHttpRequests(auth -> auth
                         // Ressources publiques
                         .requestMatchers("/login", "/error", "/webjars/**", "/css/**", "/js/**", "/images/**").permitAll()
@@ -65,6 +69,7 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/login?logout")
                         .permitAll()
                 );
+
         return http.build();
     }
 }

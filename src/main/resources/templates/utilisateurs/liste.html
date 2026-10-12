@@ -6,83 +6,328 @@
 
 <nav th:replace="~{components/layout :: navbar}"></nav>
 
-<main class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 m-0">Utilisateurs</h1>
-        <a th:href="@{/utilisateurs/nouveau}" class="btn btn-primary">Ajouter un utilisateur</a>
+<main class="contenu">
+
+    <div class="tete-page">
+        <div>
+            <h1 class="tete-page__titre">Utilisateurs</h1>
+            <p class="tete-page__sous-titre" th:with="n=${#lists.size(utilisateurs)}"
+               th:text="|${n} ${n > 1 ? 'comptes' : 'compte'}|">6 comptes</p>
+        </div>
+        <div class="tete-page__actions">
+            <button type="button" class="btn-app btn-app--primaire" id="btnAjouter">
+                <svg class="ico"><use href="#n-plus"/></svg>Ajouter un utilisateur
+            </button>
+        </div>
     </div>
 
     <div th:replace="~{components/layout :: messages}"></div>
 
-    <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle">
-            <thead class="table-dark">
-            <tr>
-                <th>Matricule</th>
-                <th>Nom et prénom</th>
-                <th>Identifiant</th>
-                <th>Sexe</th>
-                <th>Naissance</th>
-                <th>Rôle</th>
-                <th>Statut</th>
-                <th class="text-end">Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="u : ${utilisateurs}">
-                <td th:text="${u.matricule}">MAT-0001</td>
-                <td th:text="${u.nom + ' ' + u.prenom}">NOM Prénom</td>
-                <td th:text="${u.identifiant}">identifiant</td>
-                <td th:text="${u.sexe}">M</td>
-                <td th:text="${#temporals.format(u.dateNaissance, 'dd/MM/yyyy')}">01/01/1990</td>
-                <td>
-                    <span class="badge"
-                          th:classappend="${u.role.name() == 'ADMIN'} ? 'bg-warning text-dark' : 'bg-secondary'"
-                          th:text="${u.role}">ROLE</span>
-                </td>
-                <td>
-                    <span th:if="${u.actif}" class="badge bg-success">Actif</span>
-                    <span th:unless="${u.actif}" class="badge bg-danger">Désactivé</span>
-                    <span th:if="${u.doitChangerMotDePasse}" class="badge bg-info text-dark">
-                        Mot de passe provisoire
-                    </span>
-                </td>
-                <td class="text-end">
-                    <th:block th:if="${u.identifiant != #authentication.name}">
+    <section class="panneau">
+        <div class="table-responsive">
+            <table class="tableau-app tableau-app--libre">
+                <thead>
+                <tr>
+                    <th class="compact">Matricule</th>
+                    <th>Nom et prénom</th>
+                    <th>Identifiant</th>
+                    <th class="centre compact">Sexe</th>
+                    <th class="compact">Naissance</th>
+                    <th class="compact">Rôle</th>
+                    <th class="compact">Statut</th>
+                    <th class="droite compact">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="u : ${utilisateurs}" th:classappend="${!u.actif} ? 'ligne-desactivee'">
+                    <td class="compact"><span class="mono" th:text="${u.matricule}">MAT-0001</span></td>
+                    <td>
+                        <div class="identite">
+                            <span class="avatar-rond" th:classappend="${!u.actif} ? 'avatar-rond--gris'"
+                                  th:data-initiales="${u.nomComplet}">AD</span>
+                            <span class="identite__nom" th:text="${u.nomComplet}">Awa Diop</span>
+                        </div>
+                    </td>
+                    <td><span class="mono" th:text="${u.identifiant}">awa.diop</span></td>
+                    <td class="centre compact"><span class="chip-nombre" th:text="${u.sexe}">F</span></td>
+                    <td class="compact" th:text="${#temporals.format(u.dateNaissance, 'dd/MM/yyyy')}">14/05/1991</td>
+                    <td class="compact">
+                        <span class="pastille" th:classappend="${u.role.name() == 'ADMIN'} ? 'pastille--orange' : 'pastille--bleu'"
+                              th:text="${u.role}">ADMIN</span>
+                    </td>
+                    <td class="compact">
+                        <div class="statuts">
+                            <span th:if="${u.actif}" class="pastille pastille--vert pastille--point">Actif</span>
+                            <span th:unless="${u.actif}" class="pastille pastille--gris pastille--point">Désactivé</span>
+                            <span th:if="${u.doitChangerMotDePasse}" class="pastille pastille--bleu">Mot de passe provisoire</span>
+                        </div>
+                    </td>
+                    <td class="droite compact">
+                        <span th:if="${u.identifiant == #authentication.name}" class="texte-discret">Votre compte</span>
 
-                        <form th:action="@{/utilisateurs/{id}/reinitialiser-mot-de-passe(id=${u.id})}"
-                              method="post" class="d-inline"
-                              onsubmit="return confirm('Réinitialiser le mot de passe de cet utilisateur à 123456 ? Son mot de passe actuel ne fonctionnera plus.');">
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                Réinitialiser le mot de passe
+                        <div class="actions-ligne" th:if="${u.identifiant != #authentication.name}">
+                            <button type="button" class="btn-icone btn-reinit" title="Réinitialiser le mot de passe"
+                                    aria-label="Réinitialiser le mot de passe de cet utilisateur"
+                                    th:attr="data-id=${u.id}, data-nom=${u.nomComplet}">
+                                <svg class="ico"><use href="#n-cle"/></svg>
                             </button>
-                        </form>
 
-                        <form th:if="${u.actif}"
-                              th:action="@{/utilisateurs/{id}/desactiver(id=${u.id})}"
-                              method="post" class="d-inline"
-                              onsubmit="return confirm('Désactiver cet utilisateur ?');">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Désactiver</button>
-                        </form>
-                        <form th:unless="${u.actif}"
-                              th:action="@{/utilisateurs/{id}/activer(id=${u.id})}"
-                              method="post" class="d-inline">
-                            <button type="submit" class="btn btn-sm btn-outline-success">Réactiver</button>
-                        </form>
-                    </th:block>
-                    <span th:if="${u.identifiant == #authentication.name}" class="text-muted small">
-                        Votre compte
-                    </span>
-                </td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(utilisateurs)}">
-                <td colspan="8" class="text-center text-muted">Aucun utilisateur.</td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
+                            <button th:if="${u.actif}" type="button" class="btn-icone btn-icone--danger btn-desactiver"
+                                    title="Désactiver" aria-label="Désactiver cet utilisateur"
+                                    th:attr="data-id=${u.id}, data-nom=${u.nomComplet}">
+                                <svg class="ico"><use href="#n-power"/></svg>
+                            </button>
+
+                            <form th:unless="${u.actif}" th:action="@{/utilisateurs/{id}/activer(id=${u.id})}"
+                                  method="post" class="d-inline">
+                                <button type="submit" class="btn-icone btn-icone--succes" title="Réactiver"
+                                        aria-label="Réactiver cet utilisateur">
+                                    <svg class="ico"><use href="#n-reactiver"/></svg>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
 </main>
 
+<!-- ======================= Fenêtres ======================= -->
+
+<!-- Création d'un utilisateur -->
+<div class="modal fade" id="modalUtilisateur" tabindex="-1" aria-labelledby="modalUtilisateurTitre" aria-hidden="true"
+     th:data-ouvrir="${ouvrirModal}">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-large">
+        <form class="modal-content" id="formUtilisateur" th:object="${utilisateurForm}"
+              th:action="@{/utilisateurs}" method="post" novalidate>
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title" id="modalUtilisateurTitre">Ajouter un utilisateur</h2>
+                    <p class="modal-sous-titre">Créez un nouvel accès pour un administrateur ou un caissier.</p>
+                </div>
+                <button type="button" class="btn-icone" data-bs-dismiss="modal" aria-label="Fermer">
+                    <svg class="ico"><use href="#n-fermer"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="bandeau bandeau--erreur" role="alert" th:if="${#fields.hasGlobalErrors()}">
+                    <svg class="ico"><use href="#n-alerte"/></svg>
+                    <div class="bandeau__texte">
+                        <div th:each="err : ${#fields.globalErrors()}" th:text="${err}">Erreur</div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="nom" class="form-label">Nom <span class="text-danger">*</span></label>
+                        <input type="text" id="nom" th:field="*{nom}" class="form-control" maxlength="100"
+                               th:classappend="${#fields.hasErrors('nom')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{nom}">Erreur</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="prenom" class="form-label">Prénom <span class="text-danger">*</span></label>
+                        <input type="text" id="prenom" th:field="*{prenom}" class="form-control" maxlength="100"
+                               th:classappend="${#fields.hasErrors('prenom')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{prenom}">Erreur</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="matricule" class="form-label">Numéro matricule <span class="text-danger">*</span></label>
+                        <input type="text" id="matricule" th:field="*{matricule}" class="form-control mono" maxlength="30"
+                               placeholder="MAT-0007"
+                               th:classappend="${#fields.hasErrors('matricule')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{matricule}">Erreur</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Sexe <span class="text-danger">*</span></label>
+                        <div class="sexe-radios">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" id="sexeM" th:field="*{sexe}" value="M">
+                                <label class="form-check-label" for="sexeM">Masculin</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" id="sexeF" th:field="*{sexe}" value="F">
+                                <label class="form-check-label" for="sexeF">Féminin</label>
+                            </div>
+                        </div>
+                        <div class="erreur-champ" th:if="${#fields.hasErrors('sexe')}" th:errors="*{sexe}">Erreur</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="dateNaissance" class="form-label">Date de naissance <span class="text-danger">*</span></label>
+                        <input type="date" id="dateNaissance" th:field="*{dateNaissance}" class="form-control"
+                               th:classappend="${#fields.hasErrors('dateNaissance')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{dateNaissance}">Erreur</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="role" class="form-label">Rôle <span class="text-danger">*</span></label>
+                        <select id="role" th:field="*{role}" class="form-select"
+                                th:classappend="${#fields.hasErrors('role')} ? 'is-invalid'">
+                            <option th:each="r : ${roles}" th:value="${r}"
+                                    th:text="${r.name() == 'ADMIN'} ? 'ADMIN (Administration complète)' : 'CAISSIER (Point de vente et caisse)'">ROLE</option>
+                        </select>
+                        <div class="invalid-feedback" th:errors="*{role}">Erreur</div>
+                    </div>
+
+                    <div class="col-12">
+                        <label for="identifiant" class="form-label">Identifiant de connexion <span class="text-danger">*</span></label>
+                        <input type="text" id="identifiant" th:field="*{identifiant}" class="form-control mono"
+                               maxlength="50" autocomplete="off" placeholder="prenom.nom"
+                               th:classappend="${#fields.hasErrors('identifiant')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{identifiant}">Erreur</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="motDePasse" class="form-label">Mot de passe provisoire <span class="text-danger">*</span></label>
+                        <div class="champ-mdp">
+                            <input type="password" id="motDePasse" th:field="*{motDePasse}" class="form-control"
+                                   autocomplete="new-password"
+                                   th:classappend="${#fields.hasErrors('motDePasse')} ? 'is-invalid'">
+                            <button type="button" class="btn-oeil" aria-label="Afficher ou masquer le mot de passe">
+                                <svg class="ico"><use href="#n-oeil"/></svg>
+                            </button>
+                            <div class="invalid-feedback" th:errors="*{motDePasse}">Erreur</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="confirmationMotDePasse" class="form-label">Confirmer le mot de passe <span class="text-danger">*</span></label>
+                        <div class="champ-mdp">
+                            <input type="password" id="confirmationMotDePasse" th:field="*{confirmationMotDePasse}"
+                                   class="form-control" autocomplete="new-password"
+                                   th:classappend="${#fields.hasErrors('confirmationMotDePasse')} ? 'is-invalid'">
+                            <button type="button" class="btn-oeil" aria-label="Afficher ou masquer le mot de passe">
+                                <svg class="ico"><use href="#n-oeil"/></svg>
+                            </button>
+                            <div class="invalid-feedback" th:errors="*{confirmationMotDePasse}">Erreur</div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="bandeau-info">
+                            <svg class="ico"><use href="#n-info"/></svg>
+                            <span>L'utilisateur devra définir son propre mot de passe à sa première connexion.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-app" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn-app btn-app--primaire">Créer l'utilisateur</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Confirmation : réinitialisation du mot de passe -->
+<div class="modal fade" id="modalReinit" tabindex="-1" aria-labelledby="modalReinitTitre" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-confirmation modal-confirmation--centre">
+        <form class="modal-content" id="formReinit" th:action="@{/utilisateurs}" method="post">
+            <div class="modal-body">
+                <span class="modal-icone modal-icone--avert"><svg class="ico"><use href="#n-cle"/></svg></span>
+                <h2 class="modal-title" id="modalReinitTitre">Réinitialiser le mot de passe ?</h2>
+                <p class="text-secondary mt-2 mb-0">
+                    Le mot de passe de « <strong id="nomAReinit"></strong> » sera remplacé par un mot de passe
+                    provisoire. Son mot de passe actuel ne fonctionnera plus.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-app" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn-app btn-app--primaire">Réinitialiser</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Confirmation : désactivation -->
+<div class="modal fade" id="modalDesactiver" tabindex="-1" aria-labelledby="modalDesactiverTitre" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-confirmation modal-confirmation--centre">
+        <form class="modal-content" id="formDesactiver" th:action="@{/utilisateurs}" method="post">
+            <div class="modal-body">
+                <span class="modal-icone modal-icone--danger"><svg class="ico"><use href="#n-power"/></svg></span>
+                <h2 class="modal-title" id="modalDesactiverTitre">Désactiver cet utilisateur ?</h2>
+                <p class="text-secondary mt-2 mb-0">
+                    « <strong id="nomADesactiver"></strong> » ne pourra plus se connecter.
+                    Vous pourrez le réactiver à tout moment.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-app" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn-app btn-app--danger">Désactiver</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <th:block th:replace="~{components/layout :: scripts}"></th:block>
+
+<script>
+    (function () {
+        var modalEl = document.getElementById('modalUtilisateur');
+        var form = document.getElementById('formUtilisateur');
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        // Formulaire propre à chaque ouverture : champs vides, rôle CAISSIER, aucune erreur affichée
+        function viderFormulaire() {
+            form.querySelectorAll('input').forEach(function (c) {
+                if (c.type === 'radio') { c.checked = false; }
+                else if (c.type !== 'hidden') { c.value = ''; }
+                c.classList.remove('is-invalid');
+            });
+            form.querySelectorAll('.is-invalid').forEach(function (c) { c.classList.remove('is-invalid'); });
+            document.getElementById('role').value = 'CAISSIER';
+            form.querySelectorAll('.champ-mdp input').forEach(function (c) { c.type = 'password'; });
+        }
+
+        document.getElementById('btnAjouter').addEventListener('click', function () {
+            viderFormulaire();
+            modal.show();
+        });
+
+        modalEl.addEventListener('shown.bs.modal', function () { document.getElementById('nom').focus(); });
+
+        // Afficher / masquer un mot de passe
+        form.addEventListener('click', function (e) {
+            var oeil = e.target.closest('.btn-oeil');
+            if (!oeil) { return; }
+            var champ = oeil.parentElement.querySelector('input');
+            champ.type = champ.type === 'password' ? 'text' : 'password';
+        });
+
+        // Confirmations
+        var modalReinit = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalReinit'));
+        var formReinit = document.getElementById('formReinit');
+        var baseReinit = formReinit.getAttribute('action');
+        var modalDesactiver = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDesactiver'));
+        var formDesactiver = document.getElementById('formDesactiver');
+        var baseDesactiver = formDesactiver.getAttribute('action');
+
+        document.addEventListener('click', function (e) {
+            var reinit = e.target.closest('.btn-reinit');
+            if (reinit) {
+                formReinit.action = baseReinit + '/' + reinit.dataset.id + '/reinitialiser-mot-de-passe';
+                document.getElementById('nomAReinit').textContent = reinit.dataset.nom;
+                modalReinit.show();
+                return;
+            }
+            var desactiver = e.target.closest('.btn-desactiver');
+            if (desactiver) {
+                formDesactiver.action = baseDesactiver + '/' + desactiver.dataset.id + '/desactiver';
+                document.getElementById('nomADesactiver').textContent = desactiver.dataset.nom;
+                modalDesactiver.show();
+            }
+        });
+
+        // Après un refus du serveur : la fenêtre se rouvre avec les messages d'erreur
+        if (modalEl.dataset.ouvrir === 'true') { modal.show(); }
+    })();
+</script>
 </body>
 </html>
