@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{components/layout :: head('Erreur')}"></head>
+<head th:replace="~{fragments/head :: head('Erreur')}"></head>
 <body class="page-erreur"
       th:with="numero=${status != null ? status : 500},
                code=${status == 403 or status == 404 or status == 409 ? status : 500},

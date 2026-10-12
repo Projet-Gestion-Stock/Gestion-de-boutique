@@ -1,6 +1,6 @@
 package com.boutique.gestionboutique.service;
 
-import com.boutique.gestionboutique.dto.GrossisteDTO;
+import com.boutique.gestionboutique.form.GrossisteForm;
 import com.boutique.gestionboutique.exception.RessourceIntrouvableException;
 import com.boutique.gestionboutique.model.Grossiste;
 import com.boutique.gestionboutique.repository.GrossisteRepository;
@@ -29,7 +29,6 @@ public class GrossisteService {
                 .orElseThrow(() -> new RessourceIntrouvableException("Grossiste introuvable : " + id));
     }
 
-    /** idExclu = id du grossiste modifié (null à la création). */
     @Transactional(readOnly = true)
     public boolean nomDejaUtilise(String nom, Integer idExclu) {
         String valeur = nom.trim();
@@ -39,27 +38,26 @@ public class GrossisteService {
     }
 
     @Transactional
-    public Grossiste creer(GrossisteDTO form) {
+    public Grossiste creer(GrossisteForm form) {
         Grossiste g = new Grossiste();
         remplir(g, form);
         return grossisteRepository.save(g);
     }
 
     @Transactional
-    public Grossiste modifier(Integer id, GrossisteDTO form) {
+    public Grossiste modifier(Integer id, GrossisteForm form) {
         Grossiste g = trouver(id);
         remplir(g, form);
         return grossisteRepository.save(g);
     }
 
-    private void remplir(Grossiste g, GrossisteDTO form) {
+    private void remplir(Grossiste g, GrossisteForm form) {
         g.setNom(form.nom().trim());
         g.setTelephone(videEnNull(form.telephone()));
         g.setAdresse(videEnNull(form.adresse()));
         g.setEmail(videEnNull(form.email()));
     }
 
-    /** Un champ facultatif laissé vide est enregistré NULL (et non une chaîne vide). */
     private String videEnNull(String valeur) {
         return (valeur == null || valeur.isBlank()) ? null : valeur.trim();
     }

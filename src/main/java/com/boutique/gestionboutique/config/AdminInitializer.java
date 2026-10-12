@@ -1,6 +1,6 @@
 package com.boutique.gestionboutique.config;
 
-import com.boutique.gestionboutique.Enum.Role;
+import com.boutique.gestionboutique.model.Role;
 import com.boutique.gestionboutique.model.Utilisateur;
 import com.boutique.gestionboutique.repository.UtilisateurRepository;
 import org.slf4j.Logger;

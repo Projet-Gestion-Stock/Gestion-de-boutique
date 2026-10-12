@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Fenêtre d'aperçu du ticket.  -->
+<th:block th:fragment="modalTicket">
+    <div class="modal fade" id="modalTicket" tabindex="-1" aria-labelledby="modalTicketTitre" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-ticket">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="modal-entete-icone"><svg class="ico"><use href="#n-imprimante"/></svg></span>
+                    <h2 class="modal-title" id="modalTicketTitre">Ticket</h2>
+                    <button type="button" class="btn-icone" data-bs-dismiss="modal" aria-label="Fermer">
+                        <svg class="ico"><use href="#n-fermer"/></svg>
+                    </button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="ticket-fond">
+                        <iframe id="ticketCadre" class="ticket-cadre" title="Aperçu du ticket"></iframe>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-app" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn-app btn-app--primaire" id="ticketImprimer">
+                        <svg class="ico"><use href="#n-imprimante"/></svg>Imprimer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/js/modal-ticket.js}" defer></script>
+</th:block>
+
+</body>
+</html>

@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:replace="~{components/layout :: head('Approvisionnement')}"></head>
+<head th:replace="~{fragments/head :: head('Approvisionnement')}"></head>
 <body>
 
-<nav th:replace="~{components/layout :: navbar}"></nav>
+<nav th:replace="~{fragments/menu :: menu}"></nav>
 
 <main class="contenu">
 
-    <div th:replace="~{components/layout :: messages}"></div>
+    <div th:replace="~{fragments/messages :: messages}"></div>
 
     <a th:href="@{/livraisons}" class="lien-retour">&larr; Retour à l'historique</a>
 
@@ -107,6 +107,6 @@
     </section>
 </main>
 
-<th:block th:replace="~{components/layout :: scripts}"></th:block>
+<th:block th:replace="~{fragments/scripts :: scripts}"></th:block>
 </body>
 </html>

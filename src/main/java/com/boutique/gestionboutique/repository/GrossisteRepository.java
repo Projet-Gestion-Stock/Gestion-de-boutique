@@ -11,6 +11,5 @@ public interface GrossisteRepository extends JpaRepository<Grossiste, Integer> {
 
     boolean existsByNomIgnoreCase(String nom);
 
-    /** Pour la modification : on ignore le grossiste modifié. */
     boolean existsByNomIgnoreCaseAndIdNot(String nom, Integer id);
 }

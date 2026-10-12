@@ -1,7 +1,7 @@
 package com.boutique.gestionboutique.service;
 
-import com.boutique.gestionboutique.dto.CategorieDTO;
-import com.boutique.gestionboutique.dto.CategorieResume;
+import com.boutique.gestionboutique.form.CategorieForm;
+import com.boutique.gestionboutique.dto.CategorieResumeDTO;
 import com.boutique.gestionboutique.exception.RegleGestionException;
 import com.boutique.gestionboutique.exception.RessourceIntrouvableException;
 import com.boutique.gestionboutique.model.Categorie;
@@ -24,16 +24,16 @@ public class CategorieService {
         this.produitRepository = produitRepository;
     }
 
-    /** Liste des catégories avec leur nombre de produits (écran de gestion). */
+    // Liste des catégories avec leur nombre de produits
     @Transactional(readOnly = true)
-    public List<CategorieResume> lister() {
+    public List<CategorieResumeDTO> lister() {
         return categorieRepository.findAllByOrderByNomAsc().stream()
-                .map(c -> new CategorieResume(c.getId(), c.getNom(),
+                .map(c -> new CategorieResumeDTO(c.getId(), c.getNom(),
                         produitRepository.countByCategorieId(c.getId())))
                 .toList();
     }
 
-    /** Toutes les catégories, pour les listes déroulantes. */
+    // Toutes les catégories, pour les listes déroulantes.
     @Transactional(readOnly = true)
     public List<Categorie> listerToutes() {
         return categorieRepository.findAllByOrderByNomAsc();
@@ -45,7 +45,6 @@ public class CategorieService {
                 .orElseThrow(() -> new RessourceIntrouvableException("Catégorie introuvable : " + id));
     }
 
-    /** idExclu = id de la catégorie renommée (null à la création). */
     @Transactional(readOnly = true)
     public boolean nomDejaUtilise(String nom, Integer idExclu) {
         String valeur = nom.trim();
@@ -55,20 +54,20 @@ public class CategorieService {
     }
 
     @Transactional
-    public Categorie creer(CategorieDTO form) {
+    public Categorie creer(CategorieForm form) {
         Categorie c = new Categorie();
         c.setNom(form.nom().trim());
         return categorieRepository.save(c);
     }
 
     @Transactional
-    public Categorie renommer(Integer id, CategorieDTO form) {
+    public Categorie renommer(Integer id, CategorieForm form) {
         Categorie c = trouver(id);
         c.setNom(form.nom().trim());
         return categorieRepository.save(c);
     }
 
-    /** Règle C3 : une catégorie qui contient des produits ne peut pas être supprimée. */
+    // Une catégorie qui contient des produits ne peut pas être supprimée.
     @Transactional
     public void supprimer(Integer id) {
         Categorie c = trouver(id);

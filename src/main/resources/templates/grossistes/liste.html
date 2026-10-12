@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:replace="~{components/layout :: head('Approvisionnement')}"></head>
+<head th:replace="~{fragments/head :: head('Approvisionnement')}"></head>
 <body>
 
-<nav th:replace="~{components/layout :: navbar}"></nav>
+<nav th:replace="~{fragments/menu :: menu}"></nav>
 
 <main class="contenu">
 
@@ -22,7 +22,7 @@
         </div>
     </div>
 
-    <div th:replace="~{components/layout :: messages}"></div>
+    <div th:replace="~{fragments/messages :: messages}"></div>
 
     <!-- État vide -->
     <div class="vide-pointille" th:if="${#lists.isEmpty(grossistes)}">
@@ -117,7 +117,7 @@
                         <div class="champ-icone">
                             <svg class="ico"><use href="#n-telephone"/></svg>
                             <input type="text" id="telephone" th:field="*{telephone}" class="form-control" maxlength="30"
-                                   placeholder="+221 77 650 18 32"
+                                   placeholder="+226 01 02 03 04"
                                    th:classappend="${#fields.hasErrors('telephone')} ? 'is-invalid'">
                             <div class="invalid-feedback" th:errors="*{telephone}">Erreur</div>
                         </div>
@@ -128,7 +128,7 @@
                         <div class="champ-icone">
                             <svg class="ico"><use href="#n-mail"/></svg>
                             <input type="text" id="email" th:field="*{email}" class="form-control" maxlength="150"
-                                   placeholder="contact@fournisseur.sn"
+                                   placeholder="contact@fournisseur.com"
                                    th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'">
                             <div class="invalid-feedback" th:errors="*{email}">Erreur</div>
                         </div>
@@ -139,7 +139,7 @@
                         <div class="champ-icone">
                             <svg class="ico"><use href="#n-pin"/></svg>
                             <textarea id="adresse" th:field="*{adresse}" class="form-control" rows="2" maxlength="255"
-                                      placeholder="Ex : Port autonome de Dakar, Hangar 12"
+                                      placeholder="Ex : Grand Marché de Ouaga"
                                       th:classappend="${#fields.hasErrors('adresse')} ? 'is-invalid'"></textarea>
                             <div class="invalid-feedback" th:errors="*{adresse}">Erreur</div>
                         </div>
@@ -155,48 +155,8 @@
     </div>
 </div>
 
-<th:block th:replace="~{components/layout :: scripts}"></th:block>
+<th:block th:replace="~{fragments/scripts :: scripts}"></th:block>
 
-<script>
-    (function () {
-        var modalEl = document.getElementById('modalGrossiste');
-        var form = document.getElementById('formGrossiste');
-        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        var urlBase = form.dataset.actionCreation;   // « /grossistes »
-        var champs = {
-            nom: document.getElementById('nom'),
-            telephone: document.getElementById('telephone'),
-            email: document.getElementById('email'),
-            adresse: document.getElementById('adresse')
-        };
-
-        function effacerErreurs() {
-            form.querySelectorAll('.is-invalid').forEach(function (e) { e.classList.remove('is-invalid'); });
-        }
-
-        function ouvrir(edition, d) {
-            form.action = edition ? urlBase + '/' + d.id : urlBase;
-            document.getElementById('modalGrossisteTitre').textContent =
-                edition ? 'Modifier le grossiste' : 'Ajouter un grossiste';
-            champs.nom.value = edition ? d.nom : '';
-            champs.telephone.value = edition ? (d.telephone || '') : '';
-            champs.email.value = edition ? (d.email || '') : '';
-            champs.adresse.value = edition ? (d.adresse || '') : '';
-            effacerErreurs();
-            modal.show();
-        }
-
-        modalEl.addEventListener('shown.bs.modal', function () { champs.nom.focus(); });
-
-        document.addEventListener('click', function (e) {
-            if (e.target.closest('.btn-ajouter')) { ouvrir(false, null); return; }
-            var modifier = e.target.closest('.btn-modifier');
-            if (modifier) { ouvrir(true, modifier.dataset); }
-        });
-
-        // Après un refus du serveur : la fenêtre se rouvre avec les messages d'erreur
-        if (modalEl.dataset.ouvrir === 'true') { modal.show(); }
-    })();
-</script>
+<script th:src="@{/js/grossistes.js}" defer></script>
 </body>
 </html>

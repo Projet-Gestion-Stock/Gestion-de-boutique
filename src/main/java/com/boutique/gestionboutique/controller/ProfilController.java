@@ -1,8 +1,8 @@
 package com.boutique.gestionboutique.controller;
 
-import com.boutique.gestionboutique.config.UtilisateurDetails;
-import com.boutique.gestionboutique.dto.MotDePasseDTO;
-import com.boutique.gestionboutique.dto.ProfilDTO;
+import com.boutique.gestionboutique.security.UtilisateurDetails;
+import com.boutique.gestionboutique.form.MotDePasseForm;
+import com.boutique.gestionboutique.form.ProfilForm;
 import com.boutique.gestionboutique.model.Utilisateur;
 import com.boutique.gestionboutique.service.UtilisateurService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,10 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-/**
- * Profil de l'utilisateur connecté. Aucun identifiant n'est reçu dans l'URL ni dans le formulaire :
- * l'utilisateur concerné est toujours celui de la session.
- */
+// Profil de l'utilisateur connecté. Aucun identifiant n'est reçu dans l'URL ni dans le formulaire
 @Controller
 @RequestMapping("/profil")
 public class ProfilController {
@@ -39,35 +36,35 @@ public class ProfilController {
     @GetMapping
     public String voir(@AuthenticationPrincipal UtilisateurDetails user, Model model) {
         Utilisateur u = utilisateurService.trouverParIdentifiant(user.getUsername());
-        model.addAttribute("profilForm", ProfilDTO.depuis(u));
+        model.addAttribute("profilForm", ProfilForm.depuis(u));
         model.addAttribute("utilisateur", u);
-        return "profil/profil";
+        return "profil/mon-profil";
     }
 
     @PostMapping
     public String enregistrer(@AuthenticationPrincipal UtilisateurDetails user,
-                              @Valid @ModelAttribute("profilForm") ProfilDTO form,
+                              @Valid @ModelAttribute("profilForm") ProfilForm form,
                               BindingResult result,
                               Model model,
                               RedirectAttributes redirect) {
         if (result.hasErrors()) {
             model.addAttribute("utilisateur", utilisateurService.trouverParIdentifiant(user.getUsername()));
-            return "profil/profil";
+            return "profil/mon-profil";
         }
         utilisateurService.modifierProfil(user.getUsername(), form);
         redirect.addFlashAttribute("succes", "Votre profil a été mis à jour.");
-        return "redirect:/profil";
+        return "redirect:/profil/mon-profil";
     }
 
     // ---------- Mot de passe ----------
 
     private static String pageMotDePasse(boolean premiereConnexion) {
-        return premiereConnexion ? "profil/premiere-connexion" : "profil/mot-de-passe";
+        return premiereConnexion ? "auth/premiere-connexion" : "profil/mot-de-passe";
     }
 
     @GetMapping("/mot-de-passe")
     public String formulaireMotDePasse(@AuthenticationPrincipal UtilisateurDetails user, Model model) {
-        model.addAttribute("motDePasseForm", MotDePasseDTO.vide());
+        model.addAttribute("motDePasseForm", MotDePasseForm.vide());
         model.addAttribute("premiereConnexion", user.isDoitChangerMotDePasse());
         return pageMotDePasse(user.isDoitChangerMotDePasse());
     }
@@ -75,7 +72,7 @@ public class ProfilController {
     @PostMapping("/mot-de-passe")
     public String changerMotDePasse(@AuthenticationPrincipal UtilisateurDetails user,
                                     Authentication authentication,
-                                    @Valid @ModelAttribute("motDePasseForm") MotDePasseDTO form,
+                                    @Valid @ModelAttribute("motDePasseForm") MotDePasseForm form,
                                     BindingResult result,
                                     Model model,
                                     HttpServletRequest request,
@@ -113,6 +110,6 @@ public class ProfilController {
             return "redirect:/login?mdp";
         }
         redirect.addFlashAttribute("succes", "Votre mot de passe a été modifié.");
-        return "redirect:/profil";
+        return "redirect:/profil/mon-profil";
     }
 }

@@ -10,13 +10,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
-/** Point unique de traitement des exceptions connues : elles produisent toutes la même page d'erreur. */
+// Point unique de traitement des exceptions connues
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    /** Ressource absente : 404. */
+    // Ressource absente : 404.
     @ExceptionHandler(RessourceIntrouvableException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public String handleIntrouvable(RessourceIntrouvableException ex, Model model) {
@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
         return page(model, HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    /** Règle de gestion violée : 409. Le message est écrit pour l'utilisateur. */
+    // Règle de gestion violée : 409. Le message est écrit pour l'utilisateur.
     @ExceptionHandler(RegleGestionException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public String handleRegleGestion(RegleGestionException ex, Model model) {
@@ -32,7 +32,7 @@ public class GlobalExceptionHandler {
         return page(model, HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    /** Fichier envoyé trop volumineux (limite : spring.servlet.multipart.max-file-size). */
+    // Image envoyée trop volumineuse
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public String handleFichierTropGros(MaxUploadSizeExceededException ex, Model model) {
@@ -41,10 +41,7 @@ public class GlobalExceptionHandler {
                 "Le fichier envoyé est trop volumineux (image : 2 Mo maximum). Revenez en arrière et choisissez une image plus légère.");
     }
 
-    /**
-     * Contrainte de la base violée (doublon, élément encore référencé...).
-     * On n'affiche PAS le message technique : il est seulement journalisé.
-     */
+    // Contrainte de la base de donnée violée (doublon, élément encore référencé...).
     @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public String handleIntegrite(DataIntegrityViolationException ex, Model model) {

@@ -1,7 +1,7 @@
 package com.boutique.gestionboutique.service;
 
-import com.boutique.gestionboutique.dto.AchatDTO;
-import com.boutique.gestionboutique.dto.LigneAchatDTO;
+import com.boutique.gestionboutique.form.AchatForm;
+import com.boutique.gestionboutique.form.LigneAchatForm;
 import com.boutique.gestionboutique.exception.RegleGestionException;
 import com.boutique.gestionboutique.exception.RessourceIntrouvableException;
 import com.boutique.gestionboutique.model.Achat;
@@ -39,10 +39,6 @@ public class AchatService {
     private final LigneLivraisonRepository ligneLivraisonRepository;
     private final LigneAchatRepository ligneAchatRepository;
 
-    /**
-     * Ordre de vente des lots (règle LOT3) : le lot qui périme le plus tôt part en premier ;
-     * les lots sans date passent après ; à égalité, le lot reçu en premier (livraison la plus ancienne).
-     */
     private static final Comparator<LigneLivraison> ORDRE_DE_VENTE = (a, b) -> {
         LocalDate da = a.getDatePeremption();
         LocalDate db = b.getDatePeremption();
@@ -67,28 +63,21 @@ public class AchatService {
     // ---------- Consultation ----------
 
     @Transactional(readOnly = true)
-    public List<Achat> lister() {
-        return achatRepository.findAllByOrderByDateAchatDesc();
-    }
-
-    @Transactional(readOnly = true)
     public Achat trouverDetaille(Integer id) {
         return achatRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new RessourceIntrouvableException("Achat introuvable : " + id));
     }
 
-    /** Historique filtré et paginé : période (bornes facultatives, jours inclus) et caissier facultatif. Page 1 = première. */
     @Transactional(readOnly = true)
     public Page<Achat> rechercher(LocalDate du, LocalDate au, Integer caissierId, int page, int taille) {
         Periode periode = Periode.entre(du, au);
         Page<Achat> resultat = chercherPage(periode, caissierId, PageRequest.of(Math.max(page, 1) - 1, taille, TRI));
-        // Page demandée au-delà de la dernière : on affiche la dernière
         if (resultat.getTotalPages() > 0 && resultat.getNumber() >= resultat.getTotalPages()) {
             resultat = chercherPage(periode, caissierId, PageRequest.of(resultat.getTotalPages() - 1, taille, TRI));
         }
         List<Integer> ids = resultat.getContent().stream().map(Achat::getId).toList();
         if (!ids.isEmpty()) {
-            achatRepository.chargerLignes(ids);   // initialise les lignes des achats de la page
+            achatRepository.chargerLignes(ids);
         }
         return resultat;
     }
@@ -101,7 +90,6 @@ public class AchatService {
                 periode.debut(), periode.fin(), caissierId, pageable);
     }
 
-    /** Règle FI4 : total de TOUS les achats du filtre (pas seulement de la page affichée). */
     @Transactional(readOnly = true)
     public BigDecimal totalFiltre(LocalDate du, LocalDate au, Integer caissierId) {
         Periode periode = Periode.entre(du, au);
@@ -111,7 +99,6 @@ public class AchatService {
         return total == null ? BigDecimal.ZERO : total;
     }
 
-    /** Utilisateurs proposés dans le filtre « caissier ». */
     @Transactional(readOnly = true)
     public List<Utilisateur> listerUtilisateurs() {
         return utilisateurRepository.findAllByOrderByNomAscPrenomAsc();
@@ -119,36 +106,25 @@ public class AchatService {
 
     // ---------- Enregistrement ----------
 
-    /**
-     * Enregistre un achat et DIMINUE le stock de chaque produit vendu, en une seule transaction.
-     * Les unités sont prélevées lot par lot, la péremption la plus proche d'abord ; un lot périmé n'est jamais vendu.
-     * Si un produit est indisponible ou insuffisant, rien n'est enregistré : le message liste tous les
-     * problèmes, un par ligne (séparés par des retours à la ligne).
-     */
     @Transactional
-    public Achat enregistrer(AchatDTO form, String identifiantCaissier) {
+    public Achat enregistrer(AchatForm form, String identifiantCaissier) {
 
-        // Règle AC3 : les lignes d'un même produit sont regroupées (quantités additionnées), ordre de saisie conservé
+        // les lignes d'un même produit sont regroupées (quantités additionnées), ordre de saisie conservé
         Map<Integer, Integer> quantites = new LinkedHashMap<>();
-        for (LigneAchatDTO ligne : form.lignes()) {
+        for (LigneAchatForm ligne : form.lignes()) {
             quantites.merge(ligne.produitId(), ligne.quantite(), Integer::sum);
         }
 
         Utilisateur caissier = utilisateurRepository.findByIdentifiant(identifiantCaissier)
                 .orElseThrow(() -> new RessourceIntrouvableException("Utilisateur introuvable : " + identifiantCaissier));
 
-        // Règle AC6 : produits verrouillés jusqu'à la fin de la transaction
         Map<Integer, Produit> produits = produitRepository.findAllByIdForUpdate(quantites.keySet()).stream()
                 .collect(Collectors.toMap(Produit::getId, Function.identity()));
 
-        // Lots encore en stock des produits vendus. Lus APRÈS le verrou des produits : plus personne
-        // ne peut les modifier avant la fin de la transaction (livraison, vente et retrait verrouillent d'abord le produit).
         Map<Integer, List<LigneLivraison>> lotsParProduit = ligneLivraisonRepository
                 .findByProduitIdInAndQuantiteRestanteGreaterThan(quantites.keySet(), 0).stream()
                 .collect(Collectors.groupingBy(lot -> lot.getId().getIdProduit()));
 
-        // Règles AC4, AC5 et LOT4 : on contrôle TOUT avant de modifier quoi que ce soit.
-        // Seules les unités des lots NON périmés sont vendables.
         List<String> problemes = new ArrayList<>();
         for (Map.Entry<Integer, Integer> ligne : quantites.entrySet()) {
             Produit produit = produits.get(ligne.getKey());
@@ -180,17 +156,13 @@ public class AchatService {
         achat.setNomClient(videEnNull(form.nomClient()));
         for (Map.Entry<Integer, Integer> ligne : quantites.entrySet()) {
             Produit produit = produits.get(ligne.getKey());
-            achat.ajouterLigne(produit, ligne.getValue());   // règle AC7 : prix de vente copié ici
-            prelever(lotsParProduit.get(ligne.getKey()), ligne.getValue());   // règle LOT3 : lot par lot
-            produit.setQuantiteStock(produit.getQuantiteStock() - ligne.getValue());   // règle LOT5 : total du produit
+            achat.ajouterLigne(produit, ligne.getValue());
+            prelever(lotsParProduit.get(ligne.getKey()), ligne.getValue());
+            produit.setQuantiteStock(produit.getQuantiteStock() - ligne.getValue());
         }
         return achatRepository.save(achat);
     }
 
-    /**
-     * Retire 'quantite' unités des lots non périmés, dans l'ordre de vente (péremption la plus proche d'abord).
-     * La disponibilité a été vérifiée avant l'appel.
-     */
     private void prelever(List<LigneLivraison> lots, int quantite) {
         List<LigneLivraison> vendables = lots.stream()
                 .filter(lot -> !lot.isPerime())
@@ -207,12 +179,10 @@ public class AchatService {
         }
     }
 
-    /** Un nom de client laissé vide est enregistré NULL (et non une chaîne vide). */
     private String videEnNull(String valeur) {
         return (valeur == null || valeur.isBlank()) ? null : valeur.trim();
     }
 
-    /** Tous les achats du filtre (sans pagination), lignes chargées : pour l'export PDF. */
     @Transactional(readOnly = true)
     public List<Achat> listerPourExport(LocalDate du, LocalDate au, Integer caissierId) {
         Periode periode = Periode.entre(du, au);
@@ -228,7 +198,6 @@ public class AchatService {
         return achats;
     }
 
-    /** Libellé du filtre « caissier » pour l'en-tête du PDF. */
     @Transactional(readOnly = true)
     public String libelleCaissier(Integer caissierId) {
         if (caissierId == null) {

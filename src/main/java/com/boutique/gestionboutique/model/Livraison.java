@@ -37,7 +37,6 @@ public class Livraison {
     @OneToMany(mappedBy = "livraison", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LigneLivraison> lignes = new ArrayList<>();
 
-    /** Ajoute une ligne = un lot, avec sa date de péremption (facultative). */
     public LigneLivraison ajouterLigne(Produit produit, int quantite, BigDecimal prixAchat, LocalDate datePeremption) {
         LigneLivraison ligne = new LigneLivraison(this, produit, quantite, prixAchat, datePeremption);
         lignes.add(ligne);

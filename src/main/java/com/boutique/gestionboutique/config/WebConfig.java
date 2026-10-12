@@ -1,5 +1,6 @@
 package com.boutique.gestionboutique.config;
 
+import com.boutique.gestionboutique.security.MotDePasseObligatoireInterceptor;
 import com.boutique.gestionboutique.service.StockageImageService;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.CacheControl;
@@ -28,7 +29,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/webjars/**", "/css/**", "/js/**", "/images/**");
     }
 
-    /** Les images envoyées (dossier hors du projet) sont accessibles sous /uploads/produits/... */
+    // Les images envoyées sont accessibles sous /uploads/produits/...
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         String emplacement = stockageImageService.getDossier().toUri().toString();

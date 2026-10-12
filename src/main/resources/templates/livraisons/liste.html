@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:replace="~{components/layout :: head('Approvisionnement')}"></head>
+<head th:replace="~{fragments/head :: head('Approvisionnement')}"></head>
 <body>
 
-<nav th:replace="~{components/layout :: navbar}"></nav>
+<nav th:replace="~{fragments/menu :: menu}"></nav>
 
 <main class="contenu">
 
@@ -30,7 +30,7 @@
         </div>
     </div>
 
-    <div th:replace="~{components/layout :: messages}"></div>
+    <div th:replace="~{fragments/messages :: messages}"></div>
 
     <!-- Filtres (règles FI1 à FI6) -->
     <form th:action="@{/livraisons}" method="get" class="panneau filtres">
@@ -130,12 +130,12 @@
         </div>
 
         <div class="pagination-zone" th:if="${pagination.totalPages > 1}">
-            <div th:replace="~{components/pagination :: pagination(${pagination}, '/livraisons', ${filtresUrl})}"></div>
+            <div th:replace="~{fragments/pagination :: pagination(${pagination}, '/livraisons', ${filtresUrl})}"></div>
         </div>
     </section>
 </main>
 
-<th:block th:replace="~{components/layout :: scripts}"></th:block>
-<th:block th:replace="~{components/pdf-modal :: modalPdf}"></th:block>
+<th:block th:replace="~{fragments/scripts :: scripts}"></th:block>
+<th:block th:replace="~{fragments/modal-pdf :: modalPdf}"></th:block>
 </body>
 </html>

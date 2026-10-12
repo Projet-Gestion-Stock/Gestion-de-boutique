@@ -5,7 +5,7 @@ import com.boutique.gestionboutique.model.Produit;
 import java.math.BigDecimal;
 import java.util.List;
 
-/** Données du tableau de bord de l'administrateur (toute la boutique). */
+// Données du tableau de bord de l'administrateur
 public record TableauDeBordDTO(
         long nombreVentesJour,
         BigDecimal chiffreAffairesJour,

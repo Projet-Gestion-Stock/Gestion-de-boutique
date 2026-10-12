@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+    <body>
+
+        <!-- Messages "flash" : notifications en haut à droite, elles disparaissent seules -->
+        <div th:fragment="messages">
+            <div class="notifs" th:if="${succes != null or erreur != null}">
+                <div class="notif notif--succes" th:if="${succes != null}" role="status">
+                    <svg class="ico notif__icone"><use href="#n-valide"/></svg>
+                    <span class="notif__texte" th:text="${succes}"></span>
+                    <button type="button" class="notif__fermer" aria-label="Fermer"
+                            onclick="this.parentElement.remove()">&times;</button>
+                </div>
+                <div class="notif notif--erreur" th:if="${erreur != null}" role="alert">
+                    <svg class="ico notif__icone"><use href="#n-alerte"/></svg>
+                    <span class="notif__texte" th:text="${erreur}"></span>
+                    <button type="button" class="notif__fermer" aria-label="Fermer"
+                            onclick="this.parentElement.remove()">&times;</button>
+                </div>
+                <script>
+                    setTimeout(function () {
+                        document.querySelectorAll('.notif').forEach(function (n) { n.remove(); });
+                    }, 6000);
+                </script>
+            </div>
+        </div>
+
+    </body>
+</html>

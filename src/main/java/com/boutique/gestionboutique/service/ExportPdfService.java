@@ -37,7 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/** Export PDF des historiques (achats et livraisons) avec OpenPDF. Aucune donnée n'est lue en base ici. */
+// Export PDF des historiques (achats et livraisons) avec OpenPDF.
 @Service
 public class ExportPdfService {
 
@@ -74,7 +74,7 @@ public class ExportPdfService {
     private final String boutiqueAdresse;
     private final String boutiqueTelephone;
     private final String devise;
-    private final Image logo;   // null si le fichier est introuvable : le PDF est alors produit sans logo
+    private final Image logo;
 
     public ExportPdfService(@Value("${app.boutique.nom:Ma boutique}") String boutiqueNom,
                             @Value("${app.boutique.adresse:}") String boutiqueAdresse,
@@ -87,7 +87,6 @@ public class ExportPdfService {
         this.logo = chargerLogo();
     }
 
-    /** Le logo de l'application (static/images/logo.png), lu une seule fois. */
     private Image chargerLogo() {
         try (InputStream in = new ClassPathResource("static/images/logo.png").getInputStream()) {
             Image image = Image.getInstance(in.readAllBytes());
@@ -102,7 +101,6 @@ public class ExportPdfService {
     //  Historique des achats
     // =====================================================================
 
-    /** Les achats doivent avoir leurs lignes chargées (AchatService.listerPourExport). */
     public byte[] historiqueAchats(List<Achat> achats, LocalDate du, LocalDate au,
                                    String caissier, String generePar) {
         BigDecimal total = BigDecimal.ZERO;
@@ -138,7 +136,6 @@ public class ExportPdfService {
     //  Historique des livraisons
     // =====================================================================
 
-    /** Les livraisons doivent avoir leurs lignes chargées (LivraisonService.listerPourExport). */
     public byte[] historiqueLivraisons(List<Livraison> livraisons, LocalDate du, LocalDate au,
                                        String grossiste, String generePar) {
         BigDecimal total = BigDecimal.ZERO;
@@ -202,7 +199,6 @@ public class ExportPdfService {
         return sortie.toByteArray();
     }
 
-    /** En-tête : logo et coordonnées de la boutique à gauche, titre du rapport à droite, filet marine dessous. */
     private PdfPTable entete(String titre, String generePar) throws DocumentException {
         PdfPTable table = logo != null
                 ? new PdfPTable(new float[]{11, 47, 42})
@@ -256,7 +252,6 @@ public class ExportPdfService {
         cellule.setPaddingBottom(10);
     }
 
-    /** Critères du filtre : un bandeau gris très pâle, sans bordure. */
     private PdfPTable blocCriteres(List<Critere> criteres) throws DocumentException {
         PdfPTable table = new PdfPTable(criteres.size());
         table.setWidthPercentage(100);
@@ -275,7 +270,6 @@ public class ExportPdfService {
         return table;
     }
 
-    /** Trois chiffres clés côte à côte, séparés par un filet vertical. */
     private PdfPTable blocCartes(List<Carte> cartes) throws DocumentException {
         PdfPTable table = new PdfPTable(cartes.size());
         table.setWidthPercentage(100);
@@ -298,7 +292,7 @@ public class ExportPdfService {
         return table;
     }
 
-    /** Tableau : en-tête répété à chaque page, filets fins, ligne de total encadrée en haut. */
+    // Tableau : en-tête répété à chaque page et ligne de total encadrée en haut.
     private PdfPTable tableau(String[] entetes, float[] largeurs, int[] alignements, List<String[]> lignes,
                               String libelleTotal, String valeurTotal, String messageVide) throws DocumentException {
         PdfPTable table = new PdfPTable(largeurs);
@@ -374,7 +368,6 @@ public class ExportPdfService {
         return "Toutes les dates";
     }
 
-    /** 1 234 567,50 (espace insécable comme séparateur de milliers, virgule décimale). */
     private String montant(BigDecimal valeur) {
         DecimalFormatSymbols symboles = new DecimalFormatSymbols(Locale.FRANCE);
         symboles.setGroupingSeparator('\u00A0');
@@ -391,7 +384,7 @@ public class ExportPdfService {
     }
 
     // =====================================================================
-    //  Pied de chaque page : filet, boutique et titre à gauche, « Page x / y » à droite
+    //  Pied de chaque page : boutique et titre à gauche, « Page x / y » à droite
     // =====================================================================
 
     private static class PiedDePage extends PdfPageEventHelper {

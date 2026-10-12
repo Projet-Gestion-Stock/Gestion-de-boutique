@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/head :: head('Nouvel achat')}"></head>
+<body>
+
+<nav th:replace="~{fragments/menu :: menu}"></nav>
+
+<!-- Icônes propres à cette page -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="a-recherche" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+    <symbol id="a-corbeille" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></symbol>
+    <symbol id="a-valider" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+</svg>
+
+<main class="contenu contenu--caisse">
+
+    <div class="tete-page">
+        <div>
+            <h1 class="tete-page__titre">Nouvel achat</h1>
+            <p class="tete-page__sous-titre">Ajoutez les produits du client, puis validez l'achat.</p>
+        </div>
+    </div>
+
+    <form id="formAchat" th:object="${achatForm}" th:action="@{/achats}" method="post" novalidate>
+
+        <!-- Refus du serveur (stock insuffisant, produit indisponible...) -->
+        <div class="bandeau bandeau--erreur" role="alert" th:if="${#fields.hasGlobalErrors()}">
+            <svg class="ico"><use href="#n-alerte"/></svg>
+            <div class="bandeau__texte">
+                <div th:each="err : ${#fields.globalErrors()}" th:text="${err}">Erreur</div>
+            </div>
+            <button type="button" class="bandeau__fermer" aria-label="Fermer le message"
+                    onclick="this.parentElement.remove()">&times;</button>
+        </div>
+
+        <div class="grille-caisse">
+
+            <!-- ===== Colonne principale : client + panier ===== -->
+            <div class="caisse__principal">
+
+                <section class="panneau carte-client">
+                    <label for="nomClient" class="form-label">Nom du client (facultatif)</label>
+                    <input type="text" id="nomClient" th:field="*{nomClient}" class="form-control" maxlength="100"
+                           placeholder="Ex : Ouedraogo Ali"
+                           th:classappend="${#fields.hasErrors('nomClient')} ? 'is-invalid'">
+                    <div class="invalid-feedback" th:errors="*{nomClient}">Erreur</div>
+                </section>
+
+                <section class="panneau">
+                    <div class="panneau__tete">
+                        <h2 class="panneau__titre">Panier</h2>
+                        <span class="texte-discret" id="compteLignes">0 ligne</span>
+                    </div>
+
+                    <div class="erreur-champ px-4 pb-2" th:if="${#fields.hasErrors('lignes')}" th:errors="*{lignes}">Erreur</div>
+
+                    <div class="table-responsive">
+                        <table class="tableau-app tableau-app--libre tableau-caisse">
+                            <thead>
+                            <tr>
+                                <th>Produit</th>
+                                <th class="droite compact">Prix unitaire</th>
+                                <th class="compact">Quantité</th>
+                                <th class="droite compact">Sous-total</th>
+                                <th class="compact"><span class="visually-hidden">Retirer</span></th>
+                            </tr>
+                            </thead>
+                            <tbody id="lignes" th:attr="data-devise=${devise}">
+                            <tr th:each="l, st : *{lignes}" class="ligne">
+                                <td>
+                                    <div class="ligne-produit">
+                                        <img class="miniature d-none" alt="">
+                                        <div class="champ-recherche">
+                                            <svg class="ico champ-recherche__icone"><use href="#a-recherche"/></svg>
+                                            <input type="hidden" th:field="*{lignes[__${st.index}__].produitId}" class="produit-id">
+                                            <input type="text" class="form-control produit-saisie"
+                                                   placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit"
+                                                   th:classappend="${#fields.hasErrors('lignes[__${st.index}__].produitId')} ? 'is-invalid'">
+                                            <div class="erreur-champ" th:errors="*{lignes[__${st.index}__].produitId}">Erreur</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="droite compact"><span class="prix">-</span></td>
+                                <td class="compact">
+                                    <div class="stepper">
+                                        <button type="button" class="stepper__btn" data-delta="-1" aria-label="Diminuer la quantité">&minus;</button>
+                                        <input type="number" min="1" step="1" th:field="*{lignes[__${st.index}__].quantite}"
+                                               class="quantite" aria-label="Quantité"
+                                               th:classappend="${#fields.hasErrors('lignes[__${st.index}__].quantite')} ? 'is-invalid'">
+                                        <button type="button" class="stepper__btn" data-delta="1" aria-label="Augmenter la quantité">+</button>
+                                    </div>
+                                    <div class="erreur-champ" th:errors="*{lignes[__${st.index}__].quantite}">Erreur</div>
+                                    <div class="avert-stock d-none">
+                                        <svg class="ico"><use href="#n-alerte"/></svg><span></span>
+                                    </div>
+                                </td>
+                                <td class="droite compact nombre"><span class="sous-total">0,00</span></td>
+                                <td class="droite compact">
+                                    <button type="button" class="btn-icone btn-icone--danger btn-retirer"
+                                            title="Retirer cette ligne" aria-label="Retirer cette ligne">
+                                        <svg class="ico"><use href="#a-corbeille"/></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="panneau__pied">
+                        <button type="button" id="ajouterLigne" class="lien-fleche btn-lien">
+                            <svg class="ico"><use href="#n-plus"/></svg>Ajouter un produit
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ===== Récapitulatif ===== -->
+            <aside class="recap" aria-label="Récapitulatif de l'achat">
+                <div class="recap__tete">
+                    <h2 class="panneau__titre">Récapitulatif</h2>
+                    <span class="pastille pastille--gris" id="statutAchat">En attente</span>
+                </div>
+                <div class="recap__ligne">
+                    <span>Articles</span><strong id="nbArticles">0</strong>
+                </div>
+                <div class="recap__total">
+                    <span class="texte-discret">Total à payer</span>
+                    <strong id="total">0,00</strong>
+                </div>
+                <button type="submit" class="btn-app btn-app--primaire recap__valider" id="btnValider">
+                    <svg class="ico"><use href="#a-valider"/></svg>Valider l'achat
+                </button>
+                <a th:href="@{/achats}" class="btn-app recap__annuler">Annuler</a>
+                <p class="recap__aide">Le stock sera mis à jour dès la validation.</p>
+            </aside>
+        </div>
+
+        <!-- Catalogue des produits (lu par le script, jamais affiché) -->
+        <div id="catalogue" hidden>
+            <span th:each="p : ${produits}"
+                  th:data-id="${p.id}" th:data-nom="${p.nom}" th:data-prix="${p.prixVente}"
+                  th:data-stock="${p.quantiteStock}" th:data-image="@{${p.imageUrl}}"></span>
+        </div>
+
+        <!-- Suggestions de produits, partagées par toutes les lignes -->
+        <div id="suggestions" class="sugg"></div>
+
+        <!-- Modèle d'une ligne vide (inerte : copié par le script, jamais envoyé) -->
+        <template id="modeleLigne">
+            <tr class="ligne">
+                <td>
+                    <div class="ligne-produit">
+                        <img class="miniature d-none" alt="">
+                        <div class="champ-recherche">
+                            <svg class="ico champ-recherche__icone"><use href="#a-recherche"/></svg>
+                            <input type="hidden" name="lignes[__INDEX__].produitId" class="produit-id">
+                            <input type="text" class="form-control produit-saisie"
+                                   placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit">
+                        </div>
+                    </div>
+                </td>
+                <td class="droite compact"><span class="prix">-</span></td>
+                <td class="compact">
+                    <div class="stepper">
+                        <button type="button" class="stepper__btn" data-delta="-1" aria-label="Diminuer la quantité">&minus;</button>
+                        <input type="number" min="1" step="1" name="lignes[__INDEX__].quantite" value="1"
+                               class="quantite" aria-label="Quantité">
+                        <button type="button" class="stepper__btn" data-delta="1" aria-label="Augmenter la quantité">+</button>
+                    </div>
+                    <div class="avert-stock d-none">
+                        <svg class="ico"><use href="#n-alerte"/></svg><span></span>
+                    </div>
+                </td>
+                <td class="droite compact nombre"><span class="sous-total">0,00</span></td>
+                <td class="droite compact">
+                    <button type="button" class="btn-icone btn-icone--danger btn-retirer"
+                            title="Retirer cette ligne" aria-label="Retirer cette ligne">
+                        <svg class="ico"><use href="#a-corbeille"/></svg>
+                    </button>
+                </td>
+            </tr>
+        </template>
+    </form>
+</main>
+
+<th:block th:replace="~{fragments/scripts :: scripts}"></th:block>
+
+<script th:src="@{/js/achat-nouveau.js}" defer></script>
+</body>
+</html>

@@ -1,13 +1,13 @@
 package com.boutique.gestionboutique.controller;
 
-import com.boutique.gestionboutique.dto.LigneLivraisonDTO;
-import com.boutique.gestionboutique.dto.LivraisonDTO;
-import com.boutique.gestionboutique.dto.ProduitDTO;
+import com.boutique.gestionboutique.form.LigneLivraisonForm;
+import com.boutique.gestionboutique.form.LivraisonForm;
+import com.boutique.gestionboutique.form.ProduitForm;
 import com.boutique.gestionboutique.exception.RegleGestionException;
 import com.boutique.gestionboutique.model.Livraison;
 import com.boutique.gestionboutique.service.*;
-import com.boutique.gestionboutique.util.Filtres;
-import com.boutique.gestionboutique.util.ReponsePdf;
+import com.boutique.gestionboutique.util.FiltresUrl;
+import com.boutique.gestionboutique.util.TelechargementPdf;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
 import jakarta.validation.Validator;
@@ -84,24 +84,24 @@ public class LivraisonController {
         LocalDate aujourdhui = LocalDate.now();
         model.addAttribute("livraisons", resultat.getContent());
         model.addAttribute("pagination", resultat);
-        model.addAttribute("filtresUrl", Filtres.enUrl(du, au, "grossisteId", grossisteId));
+        model.addAttribute("filtresUrl", FiltresUrl.enUrl(du, au, "grossisteId", grossisteId));
         model.addAttribute("totalAffiche", total);
         model.addAttribute("grossistes", grossisteService.lister());
 
-        // Valeurs du filtre, pour réafficher le formulaire tel qu'il a été rempli
+        // Valeurs du filtre
         model.addAttribute("du", du);
         model.addAttribute("au", au);
         model.addAttribute("grossisteId", grossisteId);
         model.addAttribute("filtreActif", du != null || au != null || grossisteId != null);
 
-        // Raccourcis (règle FI6)
+        // Raccourcis
         model.addAttribute("aujourdhui", aujourdhui);
         model.addAttribute("il7Jours", aujourdhui.minusDays(6));
         model.addAttribute("debutMois", aujourdhui.withDayOfMonth(1));
         return "livraisons/liste";
     }
 
-    // ---------- Export PDF de l'historique (mêmes filtres que la liste, sans pagination) ----------
+    // ---------- Export PDF de l'historique  ----------
 
     @GetMapping("/export/pdf")
     public ResponseEntity<byte[]> exporterPdf(@RequestParam(name = "du", required = false)
@@ -117,7 +117,7 @@ public class LivraisonController {
         List<Livraison> livraisons = livraisonService.listerPourExport(du, au, grossisteId);
         byte[] pdf = exportPdfService.historiqueLivraisons(
                 livraisons, du, au, livraisonService.libelleGrossiste(grossisteId), principal.getName());
-        return ReponsePdf.telechargement(pdf, "historique-livraisons", apercu);
+        return TelechargementPdf.telechargement(pdf, "historique-livraisons", apercu);
     }
 
     // ---------- Détail ----------
@@ -132,13 +132,13 @@ public class LivraisonController {
 
     @GetMapping("/nouvelle")
     public String nouvelle(Model model) {
-        model.addAttribute("livraisonForm", LivraisonDTO.vide());
+        model.addAttribute("livraisonForm", LivraisonForm.vide());
         preparerFormulaire(model);
-        return "livraisons/formulaire";
+        return "livraisons/nouvelle";
     }
 
     @PostMapping
-    public String enregistrer(@Valid @ModelAttribute("livraisonForm") LivraisonDTO form,
+    public String enregistrer(@Valid @ModelAttribute("livraisonForm") LivraisonForm form,
                               BindingResult result,
                               Model model,
                               Principal principal,
@@ -146,7 +146,7 @@ public class LivraisonController {
         verifierLignes(form, result);
         if (result.hasErrors()) {
             preparerFormulaire(model);
-            return "livraisons/formulaire";
+            return "livraisons/nouvelle";
         }
         try {
             Livraison livraison = livraisonService.enregistrer(form, principal.getName());
@@ -156,7 +156,7 @@ public class LivraisonController {
         } catch (RegleGestionException e) {
             result.reject("regle.gestion", e.getMessage());
             preparerFormulaire(model);
-            return "livraisons/formulaire";
+            return "livraisons/nouvelle";
         }
     }
 
@@ -164,27 +164,19 @@ public class LivraisonController {
 
     private void preparerFormulaire(Model model) {
         model.addAttribute("grossistes", grossisteService.lister());
-        // Règle L4 : seuls les produits actifs sont proposés
         model.addAttribute("produits", produitService.rechercher(null, false));
-        // Solution B : catégories pour les nouveaux produits
         model.addAttribute("categories", categorieService.listerToutes());
     }
 
-    /**
-     * Contrôles dépendant du mode de chaque ligne :
-     * - produit existant : un produit choisi, une seule fois par livraison (règle L3) ;
-     * - nouveau produit : champs valides (règles P1 à P4) et nom unique, en base ET dans la livraison.
-     * Chaque erreur est placée sur le champ de la ligne concernée.
-     */
-    private void verifierLignes(LivraisonDTO form, BindingResult result) {
+    private void verifierLignes(LivraisonForm form, BindingResult result) {
         if (form.lignes() == null) {
-            return; // déjà signalé par @NotEmpty
+            return;
         }
         Map<Integer, Integer> produitsVus = new HashMap<>();
         Map<String, Integer> nomsVus = new HashMap<>();
 
         for (int i = 0; i < form.lignes().size(); i++) {
-            LigneLivraisonDTO ligne = form.lignes().get(i);
+            LigneLivraisonForm ligne = form.lignes().get(i);
             if (ligne == null) {
                 result.reject("ligne.invalide", "Une ligne de la livraison est invalide.");
                 continue;
@@ -207,8 +199,8 @@ public class LivraisonController {
 
             // Mode « nouveau produit »
             String base = chemin + ".nouveauProduit.";
-            ProduitDTO np = ligne.nouveauProduit();
-            for (ConstraintViolation<ProduitDTO> v : validator.validate(np)) {
+            ProduitForm np = ligne.nouveauProduit();
+            for (ConstraintViolation<ProduitForm> v : validator.validate(np)) {
                 result.rejectValue(base + v.getPropertyPath(), "invalide", v.getMessage());
             }
             if (np.nom() != null && !np.nom().isBlank() && !result.hasFieldErrors(base + "nom")) {

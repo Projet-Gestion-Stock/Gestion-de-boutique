@@ -49,7 +49,7 @@ public class Achat {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    /** Nombre total d'articles vendus (somme des quantités de toutes les lignes). */
+    // Nombre total d'articles vendus (somme des quantités de toutes les lignes)
     public int getNombreArticles() {
         return lignes.stream().mapToInt(LigneAchat::getQuantite).sum();
     }

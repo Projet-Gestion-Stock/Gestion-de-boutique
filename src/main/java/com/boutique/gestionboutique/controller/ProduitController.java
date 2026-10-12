@@ -1,7 +1,7 @@
 package com.boutique.gestionboutique.controller;
 
 import com.boutique.gestionboutique.dto.LotDTO;
-import com.boutique.gestionboutique.dto.ProduitDTO;
+import com.boutique.gestionboutique.form.ProduitForm;
 import com.boutique.gestionboutique.exception.RegleGestionException;
 import com.boutique.gestionboutique.model.Produit;
 import com.boutique.gestionboutique.service.CategorieService;
@@ -29,7 +29,7 @@ import java.util.List;
 @RequestMapping("/produits")
 public class ProduitController {
 
-    /** Un produit est « proche de la péremption » s'il périme dans ce nombre de jours. */
+    // Un produit est « proche de la péremption » s'il périme dans ce nombre de jours.
     private static final int JOURS_PEREMPTION_PROCHE = 30;
 
     private final ProduitService produitService;
@@ -56,7 +56,7 @@ public class ProduitController {
     public String liste(@RequestParam(name = "q", required = false) String q,
                         Authentication authentication,
                         Model model) {
-        model.addAttribute("produitForm", ProduitDTO.vide());
+        model.addAttribute("produitForm", ProduitForm.vide());
         preparerListe(model, authentication, q);
         preparerEtatFormulaire(model, null, false);
         return "produits/liste";
@@ -66,7 +66,7 @@ public class ProduitController {
 
     @PostMapping("/{id}")
     public String enregistrerModification(@PathVariable Integer id,
-                                          @Valid @ModelAttribute("produitForm") ProduitDTO form,
+                                          @Valid @ModelAttribute("produitForm") ProduitForm form,
                                           BindingResult result,
                                           @RequestParam(name = "imageFichier", required = false) MultipartFile imageFichier,
                                           @RequestParam(name = "supprimerImage", defaultValue = "false") boolean supprimerImage,
@@ -113,7 +113,7 @@ public class ProduitController {
         return "produits/peremptions";
     }
 
-    /** Règle LOT6 : retire du stock les unités d'un lot périmé. */
+    // retire du stock les unités d'un lot périmé.
     @PostMapping("/{idProduit}/lots/{idLivraison}/retirer")
     public String retirerLot(@PathVariable Integer idProduit,
                              @PathVariable Integer idLivraison,
@@ -127,7 +127,7 @@ public class ProduitController {
         return "redirect:/produits/peremptions";
     }
 
-    /** Retire du stock tous les lots périmés (chaque lot est traité dans sa propre transaction). */
+    // Retire du stock tous les lots périmés
     @PostMapping("/peremptions/retirer-tout")
     public String retirerTousLesPerimes(RedirectAttributes redirect) {
         int total = 0;
@@ -135,7 +135,6 @@ public class ProduitController {
             try {
                 total += lotService.retirer(lot.idLivraison(), lot.idProduit());
             } catch (RegleGestionException e) {
-                // lot déjà traité entre-temps : on passe au suivant
             }
         }
         redirect.addFlashAttribute("succes", total + " unité(s) périmée(s) retirée(s) du stock.");
@@ -149,24 +148,20 @@ public class ProduitController {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 
-    /** Données de la liste (le caissier ne voit que les produits actifs, l'admin voit aussi les désactivés). */
+    // Données de la liste (le caissier ne voit que les produits actifs, l'admin voit aussi les désactivés).
     private void preparerListe(Model model, Authentication authentication, String q) {
         boolean admin = estAdmin(authentication);
         model.addAttribute("produits", produitService.rechercher(q, admin));
         model.addAttribute("q", q == null ? "" : q.trim());
         model.addAttribute("joursPeremption", JOURS_PEREMPTION_PROCHE);
         model.addAttribute("devise", devise);
-        model.addAttribute("produitVide", ProduitDTO.vide());
-        model.addAttribute("infosPeremption", lotService.infosParProduit());   // règle LOT8
+        model.addAttribute("produitVide", ProduitForm.vide());
+        model.addAttribute("infosPeremption", lotService.infosParProduit());
         if (admin) {
             model.addAttribute("categories", categorieService.listerToutes());
         }
     }
 
-    /**
-     * État de la fenêtre d'ajout / modification.
-     * idProduit = null pour une création ; ouvrir = true quand la fenêtre doit s'ouvrir toute seule (formulaire refusé).
-     */
     private void preparerEtatFormulaire(Model model, Integer idProduit, boolean ouvrir) {
         model.addAttribute("edition", idProduit != null);
         model.addAttribute("idProduit", idProduit);
@@ -183,8 +178,7 @@ public class ProduitController {
         }
     }
 
-    /** Contrôles qui dépendent de la base ou du contexte (création / modification). */
-    private void verifierSaisie(ProduitDTO form, BindingResult result, Integer idExclu) {
+    private void verifierSaisie(ProduitForm form, BindingResult result, Integer idExclu) {
         if (!result.hasFieldErrors("nom") && produitService.nomDejaUtilise(form.nom(), idExclu)) {
             result.rejectValue("nom", "unique", "Un produit porte déjà ce nom.");
         }

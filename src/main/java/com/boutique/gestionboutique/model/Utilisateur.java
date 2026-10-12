@@ -1,6 +1,5 @@
 package com.boutique.gestionboutique.model;
 
-import com.boutique.gestionboutique.Enum.Role;
 import jakarta.persistence.*;
 import lombok.NoArgsConstructor;
 import lombok.*;
@@ -48,7 +47,7 @@ public class Utilisateur {
     @Column(name = "actif", nullable = false)
     private boolean actif = true;
 
-    /** Vrai tant que l'utilisateur n'a pas défini son propre mot de passe. */
+    // Vrai tant que l'utilisateur n'a pas défini son propre mot de passe. */
     @Column(name = "doit_changer_mdp", nullable = false)
     private boolean doitChangerMotDePasse = true;
 

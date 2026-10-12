@@ -1,8 +1,8 @@
 package com.boutique.gestionboutique.service;
 
-import com.boutique.gestionboutique.dto.LigneLivraisonDTO;
-import com.boutique.gestionboutique.dto.LivraisonDTO;
-import com.boutique.gestionboutique.dto.ProduitDTO;
+import com.boutique.gestionboutique.form.LigneLivraisonForm;
+import com.boutique.gestionboutique.form.LivraisonForm;
+import com.boutique.gestionboutique.form.ProduitForm;
 import com.boutique.gestionboutique.exception.RegleGestionException;
 import com.boutique.gestionboutique.exception.RessourceIntrouvableException;
 import com.boutique.gestionboutique.model.Grossiste;
@@ -62,17 +62,11 @@ public class LivraisonService {
     // ---------- Consultation ----------
 
     @Transactional(readOnly = true)
-    public List<Livraison> lister() {
-        return livraisonRepository.findAllByOrderByDateLivraisonDesc();
-    }
-
-    @Transactional(readOnly = true)
     public Livraison trouverDetaillee(Integer id) {
         return livraisonRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new RessourceIntrouvableException("Livraison introuvable : " + id));
     }
 
-    /** Historique filtré et paginé : période (bornes facultatives, jours inclus) et grossiste facultatif. Page 1 = première. */
     @Transactional(readOnly = true)
     public Page<Livraison> rechercher(LocalDate du, LocalDate au, Integer grossisteId, int page, int taille) {
         Periode periode = Periode.entre(du, au);
@@ -95,7 +89,6 @@ public class LivraisonService {
                 periode.debut(), periode.fin(), grossisteId, pageable);
     }
 
-    /** Règle FI4 : coût d'achat de TOUTES les livraisons du filtre (pas seulement de la page affichée). */
     @Transactional(readOnly = true)
     public BigDecimal totalFiltre(LocalDate du, LocalDate au, Integer grossisteId) {
         Periode periode = Periode.entre(du, au);
@@ -107,18 +100,13 @@ public class LivraisonService {
 
     // ---------- Enregistrement ----------
 
-    /**
-     * Enregistre une livraison en une seule transaction : création des nouveaux produits (stock = quantité livrée),
-     * création de la livraison et de ses lignes, augmentation du stock des produits existants.
-     * Si une ligne échoue, rien n'est enregistré (pas même les nouveaux produits).
-     */
     @Transactional
-    public Livraison enregistrer(LivraisonDTO form, String identifiantUtilisateur) {
-        List<LigneLivraisonDTO> lignes = form.lignes();
+    public Livraison enregistrer(LivraisonForm form, String identifiantUtilisateur) {
+        List<LigneLivraisonForm> lignes = form.lignes();
 
-        // Lignes « produit existant » : règle L3 (contrôlée aussi ici, indépendamment du formulaire)
+        // Lignes « produit existant » :
         List<Integer> ids = new ArrayList<>();
-        for (LigneLivraisonDTO ligne : lignes) {
+        for (LigneLivraisonForm ligne : lignes) {
             if (!ligne.nouveau()) {
                 if (ligne.produitId() == null) {
                     throw new RegleGestionException("Choisissez un produit pour chaque ligne.");
@@ -130,13 +118,13 @@ public class LivraisonService {
             throw new RegleGestionException("Un produit ne peut figurer qu'une seule fois dans une livraison.");
         }
 
-        // Lignes « nouveau produit » : nom unique en base (P1) ET entre les lignes de la livraison
+        // Lignes « nouveau produit » : nom unique en base ET entre les lignes de la livraison
         Set<String> nomsVus = new HashSet<>();
-        for (LigneLivraisonDTO ligne : lignes) {
+        for (LigneLivraisonForm ligne : lignes) {
             if (!ligne.nouveau()) {
                 continue;
             }
-            ProduitDTO np = ligne.nouveauProduit();
+            ProduitForm np = ligne.nouveauProduit();
             if (np.nom() == null || np.nom().isBlank() || np.prixVente() == null
                     || np.seuilAlerte() == null || np.categorieId() == null) {
                 throw new RegleGestionException("Un nouveau produit est incomplet : nom, catégorie, prix de vente et seuil sont obligatoires.");
@@ -155,7 +143,6 @@ public class LivraisonService {
         Utilisateur utilisateur = utilisateurRepository.findByIdentifiant(identifiantUtilisateur)
                 .orElseThrow(() -> new RessourceIntrouvableException("Utilisateur introuvable : " + identifiantUtilisateur));
 
-        // Produits existants verrouillés jusqu'à la fin de la transaction
         Map<Integer, Produit> produits = ids.isEmpty()
                 ? Map.of()
                 : produitRepository.findAllByIdForUpdate(ids).stream()
@@ -165,37 +152,31 @@ public class LivraisonService {
         livraison.setGrossiste(grossiste);
         livraison.setUtilisateur(utilisateur);
 
-        for (LigneLivraisonDTO ligne : lignes) {
+        for (LigneLivraisonForm ligne : lignes) {
             Produit produit;
             if (ligne.nouveau()) {
-                // Règle P6 : le produit naît avec un stock de 0, la livraison l'augmente juste après
                 produit = produitService.creerPourLivraison(ligne.nouveauProduit());
             } else {
                 produit = produits.get(ligne.produitId());
                 if (produit == null) {
                     throw new RegleGestionException("Produit introuvable : " + ligne.produitId());
                 }
-                // Règle L4
                 if (!produit.isActif()) {
                     throw new RegleGestionException("Le produit « " + produit.getNom()
                             + " » est désactivé : réactivez-le avant de l'inclure dans une livraison.");
                 }
             }
-            // Règle LOT2 (contrôlée aussi ici, indépendamment du formulaire)
             if (ligne.datePeremption() != null && ligne.datePeremption().isBefore(LocalDate.now())) {
                 throw new RegleGestionException("« " + produit.getNom() + " » : la date de péremption est dépassée, "
                         + "un lot périmé ne peut pas être réceptionné.");
             }
-            // Règle LOT1 : la ligne est un lot, avec sa propre date de péremption (facultative)
             livraison.ajouterLigne(produit, ligne.quantite(), ligne.prixAchat(), ligne.datePeremption());
-            // Règle L5 : le stock augmente ; l'entité est suivie par JPA, la mise à jour part avec la transaction
             produit.setQuantiteStock(produit.getQuantiteStock() + ligne.quantite());
         }
 
         return livraisonRepository.save(livraison);
     }
 
-    /** Toutes les livraisons du filtre (sans pagination), lignes chargées : pour l'export PDF. */
     @Transactional(readOnly = true)
     public List<Livraison> listerPourExport(LocalDate du, LocalDate au, Integer grossisteId) {
         Periode periode = Periode.entre(du, au);
@@ -211,7 +192,6 @@ public class LivraisonService {
         return livraisons;
     }
 
-    /** Libellé du filtre « grossiste » pour l'en-tête du PDF. */
     @Transactional(readOnly = true)
     public String libelleGrossiste(Integer grossisteId) {
         if (grossisteId == null) {

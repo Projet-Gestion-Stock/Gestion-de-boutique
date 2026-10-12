@@ -1,6 +1,6 @@
 package com.boutique.gestionboutique.controller;
 
-import com.boutique.gestionboutique.dto.GrossisteDTO;
+import com.boutique.gestionboutique.form.GrossisteForm;
 import com.boutique.gestionboutique.service.GrossisteService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
@@ -23,11 +23,11 @@ public class GrossisteController {
         this.grossisteService = grossisteService;
     }
 
-    // ---------- Liste (la création et la modification se font dans une fenêtre) ----------
+    // ---------- Liste ----------
 
     @GetMapping
     public String liste(Model model) {
-        model.addAttribute("grossisteForm", GrossisteDTO.vide());
+        model.addAttribute("grossisteForm", GrossisteForm.vide());
         preparerListe(model, null, false);
         return "grossistes/liste";
     }
@@ -35,7 +35,7 @@ public class GrossisteController {
     // ---------- Création ----------
 
     @PostMapping
-    public String creer(@Valid @ModelAttribute("grossisteForm") GrossisteDTO form,
+    public String creer(@Valid @ModelAttribute("grossisteForm") GrossisteForm form,
                         BindingResult result,
                         Model model,
                         RedirectAttributes redirect) {
@@ -53,7 +53,7 @@ public class GrossisteController {
 
     @PostMapping("/{id}")
     public String enregistrerModification(@PathVariable Integer id,
-                                          @Valid @ModelAttribute("grossisteForm") GrossisteDTO form,
+                                          @Valid @ModelAttribute("grossisteForm") GrossisteForm form,
                                           BindingResult result,
                                           Model model,
                                           RedirectAttributes redirect) {
@@ -69,7 +69,6 @@ public class GrossisteController {
 
     // ---------- Outils ----------
 
-    /** idGrossiste = null pour une création ; ouvrir = true quand la fenêtre doit se rouvrir (formulaire refusé). */
     private void preparerListe(Model model, Integer idGrossiste, boolean ouvrir) {
         model.addAttribute("grossistes", grossisteService.lister());
         model.addAttribute("edition", idGrossiste != null);
@@ -77,7 +76,7 @@ public class GrossisteController {
         model.addAttribute("ouvrirModal", ouvrir);
     }
 
-    private void verifierSaisie(GrossisteDTO form, BindingResult result, Integer idExclu) {
+    private void verifierSaisie(GrossisteForm form, BindingResult result, Integer idExclu) {
         if (!result.hasFieldErrors("nom") && grossisteService.nomDejaUtilise(form.nom(), idExclu)) {
             result.rejectValue("nom", "unique", "Un grossiste porte déjà ce nom.");
         }

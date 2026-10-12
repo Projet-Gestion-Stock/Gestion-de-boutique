@@ -1,7 +1,7 @@
 package com.boutique.gestionboutique.service;
 
-import com.boutique.gestionboutique.dto.ProfilDTO;
-import com.boutique.gestionboutique.dto.UtilisateurDTO;
+import com.boutique.gestionboutique.form.ProfilForm;
+import com.boutique.gestionboutique.form.UtilisateurForm;
 import com.boutique.gestionboutique.exception.RegleGestionException;
 import com.boutique.gestionboutique.exception.RessourceIntrouvableException;
 import com.boutique.gestionboutique.model.Utilisateur;
@@ -15,7 +15,7 @@ import java.util.List;
 @Service
 public class UtilisateurService {
 
-    /** Mot de passe appliqué lors d'une réinitialisation par l'administrateur. */
+    // Mot de passe appliqué lors d'une réinitialisation par l'administrateur. */
     public static final String MOT_DE_PASSE_PAR_DEFAUT = "123456";
 
     private final UtilisateurRepository utilisateurRepository;
@@ -58,9 +58,9 @@ public class UtilisateurService {
 
     // ---------- Administration (rôle ADMIN) ----------
 
-    /** Crée un compte avec un mot de passe PROVISOIRE : l'utilisateur devra le changer à sa première connexion. */
+    // Crée un compte avec un mot de passe PROVISOIRE : l'utilisateur devra le changer à sa première connexion.
     @Transactional
-    public Utilisateur creer(UtilisateurDTO form) {
+    public Utilisateur creer(UtilisateurForm form) {
         Utilisateur u = new Utilisateur();
         u.setNom(form.nom().trim());
         u.setPrenom(form.prenom().trim());
@@ -75,7 +75,7 @@ public class UtilisateurService {
         return utilisateurRepository.save(u);
     }
 
-    /** Active ou désactive un compte (on ne supprime jamais, pour garder l'historique). */
+    // Active ou désactive un compte (on ne supprime jamais, pour garder l'historique).
     @Transactional
     public void changerStatut(Integer id, boolean actif, String identifiantConnecte) {
         Utilisateur u = trouver(id);
@@ -85,11 +85,6 @@ public class UtilisateurService {
         u.setActif(actif);
     }
 
-    /**
-     * Remet le mot de passe de l'utilisateur à la valeur par défaut et l'oblige à en définir
-     * un nouveau à sa prochaine connexion. Un administrateur ne peut pas réinitialiser
-     * son propre mot de passe ici (il utilise « Mon profil », qui exige l'ancien).
-     */
     @Transactional
     public void reinitialiserMotDePasse(Integer id, String identifiantConnecte) {
         Utilisateur u = trouver(id);
@@ -103,9 +98,9 @@ public class UtilisateurService {
 
     // ---------- Profil personnel (l'utilisateur connecté uniquement) ----------
 
-    /** Met à jour les informations modifiables du profil. Matricule, identifiant et rôle ne changent jamais ici. */
+    // Met à jour les informations modifiables du profil. Matricule, identifiant et rôle ne changent jamais ici.
     @Transactional
-    public Utilisateur modifierProfil(String identifiant, ProfilDTO form) {
+    public Utilisateur modifierProfil(String identifiant, ProfilForm form) {
         Utilisateur u = trouverParIdentifiant(identifiant);
         u.setNom(form.nom().trim());
         u.setPrenom(form.prenom().trim());
@@ -114,13 +109,13 @@ public class UtilisateurService {
         return utilisateurRepository.save(u);
     }
 
-    /** Vrai si le mot de passe fourni est celui actuellement enregistré pour cet utilisateur. */
+    // Vrai si le mot de passe fourni est celui actuellement enregistré pour cet utilisateur.
     @Transactional(readOnly = true)
     public boolean motDePasseCorrespond(String identifiant, String motDePasse) {
         return passwordEncoder.matches(motDePasse, trouverParIdentifiant(identifiant).getMotDePasse());
     }
 
-    /** Définit le mot de passe choisi par l'utilisateur et lève l'obligation de le changer. */
+    // Définit le mot de passe choisi par l'utilisateur et lève l'obligation de le changer.
     @Transactional
     public void definirMotDePasse(String identifiant, String nouveauMotDePasse) {
         Utilisateur u = trouverParIdentifiant(identifiant);

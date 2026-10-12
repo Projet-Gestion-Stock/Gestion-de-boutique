@@ -14,16 +14,12 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
-/**
- * Stockage local des images de produits.
- * Dossier : app.upload.dir (application.properties), sous-dossier « produits ».
- */
 @Service
 public class StockageImageService {
 
     private static final Logger log = LoggerFactory.getLogger(StockageImageService.class);
 
-    /** Taille maximale d'une image : 2 Mo (même valeur que spring.servlet.multipart.max-file-size). */
+    // Taille maximale d'une image : 2 Mo
     public static final long TAILLE_MAX = 2L * 1024 * 1024;
 
     private final Path dossier;
@@ -52,7 +48,7 @@ public class StockageImageService {
         return dossier;
     }
 
-    /** Retourne le message d'erreur à afficher, ou null si le fichier est acceptable (ou absent). */
+    // Retourne le message d'erreur à afficher, ou null si le fichier est acceptable
     public String verifier(MultipartFile fichier) {
         if (fichier == null || fichier.isEmpty()) {
             return null;
@@ -66,7 +62,7 @@ public class StockageImageService {
         return null;
     }
 
-    /** Enregistre l'image et retourne son nom de fichier généré, ou null s'il n'y a pas de fichier. */
+    // Enregistre l'image et retourne son nom de fichier généré
     public String enregistrer(MultipartFile fichier) {
         if (fichier == null || fichier.isEmpty()) {
             return null;
@@ -84,7 +80,7 @@ public class StockageImageService {
         return nom;
     }
 
-    /** Supprime un fichier du dossier des images (sans erreur s'il n'existe plus). */
+    // Supprime un fichier du dossier des images
     public void supprimer(String nom) {
         if (nom == null || nom.isBlank()) {
             return;
@@ -100,7 +96,7 @@ public class StockageImageService {
         }
     }
 
-    /** Reconnaît le format d'après les premiers octets (et non d'après le nom envoyé par le navigateur). */
+    // Reconnaît le format d'après les premiers octets
     private String extensionSelonContenu(MultipartFile fichier) {
         try (InputStream in = fichier.getInputStream()) {
             byte[] e = in.readNBytes(12);

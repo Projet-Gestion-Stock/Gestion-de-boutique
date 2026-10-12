@@ -13,7 +13,7 @@ import java.util.List;
 
 public interface ProduitRepository extends JpaRepository<Produit, Integer> {
 
-    // ---------- Listes (la catégorie est chargée avec le produit) ----------
+    // ---------- Listes  ----------
 
     @EntityGraph(attributePaths = "categorie")
     List<Produit> findAllByOrderByNomAsc();
@@ -21,11 +21,9 @@ public interface ProduitRepository extends JpaRepository<Produit, Integer> {
     @EntityGraph(attributePaths = "categorie")
     List<Produit> findByActifTrueOrderByNomAsc();
 
-    /** Recherche par nom : partielle et insensible à la casse. */
     @EntityGraph(attributePaths = "categorie")
     List<Produit> findByNomContainingIgnoreCaseOrderByNomAsc(String nom);
 
-    /** Même recherche, limitée aux produits actifs (écran du caissier, ventes). */
     @EntityGraph(attributePaths = "categorie")
     List<Produit> findByActifTrueAndNomContainingIgnoreCaseOrderByNomAsc(String nom);
 
@@ -39,19 +37,14 @@ public interface ProduitRepository extends JpaRepository<Produit, Integer> {
 
     long countByCategorieId(Integer idCategorie);
 
-    // ---------- Alertes (tableau de bord, plus tard) ----------
+    // ---------- Alertes ----------
 
-    /** Produits actifs dont le stock est au niveau du seuil d'alerte ou en dessous. */
     @EntityGraph(attributePaths = "categorie")
     @Query("select p from Produit p where p.actif = true and p.quantiteStock <= p.seuilAlerte order by p.quantiteStock asc")
     List<Produit> findProduitsEnAlerte();
 
     // ---------- Mouvements de stock (livraisons, achats) ----------
 
-    /**
-     * Charge les produits en les VERROUILLANT jusqu'à la fin de la transaction : deux opérations
-     * simultanées ne peuvent pas modifier le même stock en même temps. Tri par id pour éviter les blocages croisés.
-     */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Produit p where p.id in :ids order by p.id")
     List<Produit> findAllByIdForUpdate(@Param("ids") Collection<Integer> ids);

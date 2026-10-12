@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/head :: head('Approvisionnement')}"></head>
+<body>
+
+<nav th:replace="~{fragments/menu :: menu}"></nav>
+
+<!-- Icônes propres à cette page -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="l-recherche" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+    <symbol id="l-corbeille" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></symbol>
+    <symbol id="l-valider" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+</svg>
+
+<main class="contenu contenu--caisse">
+
+    <div class="tete-page">
+        <div>
+            <p class="fil-ariane">APPROVISIONNEMENT <span>/</span> <strong>NOUVELLE RÉCEPTION</strong></p>
+            <h1 class="tete-page__titre">Enregistrer une livraison</h1>
+            <p class="tete-page__sous-titre">Ajoutez les produits reçus du grossiste, puis validez.</p>
+        </div>
+    </div>
+
+    <form id="formLivraison" th:object="${livraisonForm}" th:action="@{/livraisons}" method="post" novalidate>
+
+        <!-- Refus du serveur (règle de gestion) -->
+        <div class="bandeau bandeau--erreur" role="alert" th:if="${#fields.hasGlobalErrors()}">
+            <svg class="ico"><use href="#n-alerte"/></svg>
+            <div class="bandeau__texte">
+                <div th:each="err : ${#fields.globalErrors()}" th:text="${err}">Erreur</div>
+            </div>
+            <button type="button" class="bandeau__fermer" aria-label="Fermer le message"
+                    onclick="this.parentElement.remove()">&times;</button>
+        </div>
+        <!-- Champs invalides -->
+        <div class="bandeau bandeau--erreur" role="alert"
+             th:if="${#fields.hasErrors('*') and !#fields.hasGlobalErrors()}">
+            <svg class="ico"><use href="#n-alerte"/></svg>
+            <div class="bandeau__texte">La livraison n'a pas été enregistrée : corrigez les champs signalés ci-dessous.</div>
+            <button type="button" class="bandeau__fermer" aria-label="Fermer le message"
+                    onclick="this.parentElement.remove()">&times;</button>
+        </div>
+
+        <div class="grille-caisse">
+
+            <!-- ===== Colonne principale : grossiste + produits ===== -->
+            <div class="caisse__principal">
+
+                <section class="panneau carte-client">
+                    <label for="grossisteId" class="form-label">Grossiste <span class="text-danger">*</span></label>
+                    <select id="grossisteId" th:field="*{grossisteId}" class="form-select"
+                            th:classappend="${#fields.hasErrors('grossisteId')} ? 'is-invalid'">
+                        <option value="">-- Choisir un grossiste --</option>
+                        <option th:each="g : ${grossistes}" th:value="${g.id}" th:text="${g.nom}">Grossiste</option>
+                    </select>
+                    <div class="erreur-champ" th:errors="*{grossisteId}">Choisissez un grossiste.</div>
+                    <div class="form-text mt-2">Fournisseur qui a livré ces produits.</div>
+                </section>
+
+                <section class="panneau">
+                    <div class="panneau__tete">
+                        <div>
+                            <h2 class="panneau__titre">Produits livrés</h2>
+                            <p class="panneau__sous-titre">Produits existants ou nouveaux produits reçus dans cette livraison</p>
+                        </div>
+                        <span class="pastille pastille--gris" id="compteLignes">0 ligne</span>
+                    </div>
+
+                    <div class="erreur-champ px-4 pb-2" th:if="${#fields.hasErrors('lignes')}" th:errors="*{lignes}">Erreur</div>
+
+                    <div class="table-responsive">
+                        <table class="tableau-app tableau-app--libre tableau-caisse">
+                            <thead>
+                            <tr>
+                                <th>Produit</th>
+                                <th class="compact">Quantité reçue</th>
+                                <th class="compact">Prix d'achat unitaire</th>
+                                <th class="droite compact">Sous-total</th>
+                                <th class="compact"><span class="visually-hidden">Retirer</span></th>
+                            </tr>
+                            </thead>
+                            <tbody id="lignes" th:attr="data-devise=${devise}">
+                            <tr th:each="l, st : *{lignes}" class="ligne">
+                                <td>
+                                    <div class="mode-ligne" role="group" aria-label="Type de produit">
+                                        <button type="button" class="mode-ligne__btn" data-mode="false">Produit existant</button>
+                                        <button type="button" class="mode-ligne__btn" data-mode="true">Nouveau produit</button>
+                                    </div>
+                                    <input type="hidden" class="mode-valeur" th:field="*{lignes[__${st.index}__].nouveau}">
+
+                                    <!-- Produit existant -->
+                                    <div class="bloc-existant">
+                                        <div class="ligne-produit">
+                                            <img class="miniature d-none" alt="">
+                                            <div class="champ-recherche">
+                                                <svg class="ico champ-recherche__icone"><use href="#l-recherche"/></svg>
+                                                <input type="hidden" th:field="*{lignes[__${st.index}__].produitId}" class="produit-id">
+                                                <input type="text" class="form-control produit-saisie"
+                                                       placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit"
+                                                       th:classappend="${#fields.hasErrors('lignes[__${st.index}__].produitId')} ? 'is-invalid'">
+                                                <div class="erreur-champ" th:errors="*{lignes[__${st.index}__].produitId}">Erreur</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Nouveau produit : créé à l'enregistrement, stock = quantité reçue -->
+                                    <div class="bloc-nouveau d-none">
+                                        <div>
+                                            <label class="mini-label">Nom du nouveau produit</label>
+                                            <input type="text" maxlength="150" class="form-control nouveau-nom"
+                                                   placeholder="Ex : Sucre en poudre 1 kg" aria-label="Nom du nouveau produit"
+                                                   th:field="*{lignes[__${st.index}__].nouveauProduit.nom}"
+                                                   th:classappend="${#fields.hasErrors('lignes[__${st.index}__].nouveauProduit.nom')} ? 'is-invalid'">
+                                            <div class="erreur-champ" th:errors="*{lignes[__${st.index}__].nouveauProduit.nom}">Erreur</div>
+                                        </div>
+                                        <div class="nouveau-grille">
+                                            <div>
+                                                <label class="mini-label">Catégorie</label>
+                                                <select class="form-select" aria-label="Catégorie"
+                                                        th:field="*{lignes[__${st.index}__].nouveauProduit.categorieId}"
+                                                        th:classappend="${#fields.hasErrors('lignes[__${st.index}__].nouveauProduit.categorieId')} ? 'is-invalid'">
+                                                    <option value="">-- Choisir --</option>
+                                                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.nom}">Catégorie</option>
+                                                </select>
+                                                <div class="erreur-champ" th:errors="*{lignes[__${st.index}__].nouveauProduit.categorieId}">Erreur</div>
+                                            </div>
+                                            <div>
+                                                <label class="mini-label">Prix de vente</label>
+                                                <input type="number" min="0" step="0.01" class="form-control" aria-label="Prix de vente"
+                                                       th:field="*{lignes[__${st.index}__].nouveauProduit.prixVente}"
+                                                       th:classappend="${#fields.hasErrors('lignes[__${st.index}__].nouveauProduit.prixVente')} ? 'is-invalid'">
+                                                <div class="erreur-champ" th:errors="*{lignes[__${st.index}__].nouveauProduit.prixVente}">Erreur</div>
+                                            </div>
+                                            <div>
+                                                <label class="mini-label">Seuil d'alerte</label>
+                                                <input type="number" min="0" step="1" class="form-control" aria-label="Seuil d'alerte"
+                                                       th:field="*{lignes[__${st.index}__].nouveauProduit.seuilAlerte}"
+                                                       th:classappend="${#fields.hasErrors('lignes[__${st.index}__].nouveauProduit.seuilAlerte')} ? 'is-invalid'">
+                                                <div class="erreur-champ" th:errors="*{lignes[__${st.index}__].nouveauProduit.seuilAlerte}">Erreur</div>
+                                            </div>
+                                        </div>
+                                        <div class="form-text text-danger" th:if="${#lists.isEmpty(categories)}">
+                                            Aucune catégorie : créez-en une depuis la page Produits.
+                                        </div>
+                                    </div>
+
+                                    <!-- Péremption du lot (facultative) -->
+                                    <div class="perem-ligne">
+                                        <label class="mini-label">Péremption du lot <span>(facultative)</span></label>
+                                        <input type="date" class="form-control" aria-label="Date de péremption du lot"
+                                               th:field="*{lignes[__${st.index}__].datePeremption}"
+                                               th:classappend="${#fields.hasErrors('lignes[__${st.index}__].datePeremption')} ? 'is-invalid'">
+                                        <div class="erreur-champ" th:errors="*{lignes[__${st.index}__].datePeremption}">Erreur</div>
+                                    </div>
+                                </td>
+                                <td class="compact">
+                                    <div class="stepper">
+                                        <button type="button" class="stepper__btn" data-delta="-1" aria-label="Diminuer la quantité">&minus;</button>
+                                        <input type="number" min="1" step="1" th:field="*{lignes[__${st.index}__].quantite}"
+                                               class="quantite" aria-label="Quantité"
+                                               th:classappend="${#fields.hasErrors('lignes[__${st.index}__].quantite')} ? 'is-invalid'">
+                                        <button type="button" class="stepper__btn" data-delta="1" aria-label="Augmenter la quantité">+</button>
+                                    </div>
+                                    <div class="erreur-champ" th:errors="*{lignes[__${st.index}__].quantite}">Erreur</div>
+                                </td>
+                                <td class="compact">
+                                    <div class="input-group prix-saisie">
+                                        <input type="number" min="0" step="0.01" class="form-control prix-achat" aria-label="Prix d'achat"
+                                               th:field="*{lignes[__${st.index}__].prixAchat}"
+                                               th:classappend="${#fields.hasErrors('lignes[__${st.index}__].prixAchat')} ? 'is-invalid'">
+                                        <span class="input-group-text" th:text="${devise}">FCFA</span>
+                                    </div>
+                                    <div class="erreur-champ" th:errors="*{lignes[__${st.index}__].prixAchat}">Erreur</div>
+                                </td>
+                                <td class="droite compact nombre"><span class="sous-total">0,00</span></td>
+                                <td class="droite compact">
+                                    <button type="button" class="btn-icone btn-icone--danger btn-retirer"
+                                            title="Retirer cette ligne" aria-label="Retirer cette ligne">
+                                        <svg class="ico"><use href="#l-corbeille"/></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="panneau__pied">
+                        <button type="button" id="ajouterLigne" class="lien-fleche btn-lien">
+                            <svg class="ico"><use href="#n-plus"/></svg>Ajouter un produit
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ===== Récapitulatif ===== -->
+            <aside class="recap" id="recap" aria-label="Récapitulatif de la livraison"
+                   th:attr="data-erreurs=${#fields.hasErrors('*') ? #fields.errors('*').size() : 0}">
+                <div class="recap__tete">
+                    <h2 class="panneau__titre">Récapitulatif</h2>
+                    <span class="pastille pastille--gris" id="statutLivraison">En attente</span>
+                </div>
+                <div class="recap__ligne"><span>Fournisseur</span><strong id="recapGrossiste">-</strong></div>
+                <div class="recap__ligne"><span>Lignes enregistrées</span><strong id="nbLignes">0</strong></div>
+                <div class="recap__ligne"><span>Quantité totale reçue</span><strong id="nbUnites">0</strong></div>
+                <div class="recap__ligne"><span>Nouveaux produits</span><strong id="nbNouveaux">0</strong></div>
+                <div class="recap__total">
+                    <span class="texte-discret">TOTAL (COÛT D'ACHAT)</span>
+                    <strong id="total">0,00</strong>
+                </div>
+                <button type="submit" class="btn-app btn-app--primaire recap__valider" id="btnValider">
+                    <svg class="ico"><use href="#l-valider"/></svg>Enregistrer la livraison
+                </button>
+                <a th:href="@{/livraisons}" class="btn-app recap__annuler">Annuler</a>
+                <p class="recap__aide">Le stock sera automatiquement augmenté à l'enregistrement.</p>
+            </aside>
+        </div>
+
+        <!-- Catalogue des produits (lu par le script, jamais affiché) -->
+        <div id="catalogue" hidden>
+            <span th:each="p : ${produits}"
+                  th:data-id="${p.id}" th:data-nom="${p.nom}" th:data-stock="${p.quantiteStock}"
+                  th:data-image="@{${p.imageUrl}}"></span>
+        </div>
+
+        <!-- Suggestions de produits, partagées par toutes les lignes -->
+        <div id="suggestions" class="sugg"></div>
+
+        <!-- Modèle d'une ligne vide (inerte : copié par le script, jamais envoyé) -->
+        <template id="modeleLigne">
+            <tr class="ligne">
+                <td>
+                    <div class="mode-ligne" role="group" aria-label="Type de produit">
+                        <button type="button" class="mode-ligne__btn" data-mode="false">Produit existant</button>
+                        <button type="button" class="mode-ligne__btn" data-mode="true">Nouveau produit</button>
+                    </div>
+                    <input type="hidden" class="mode-valeur" name="lignes[__INDEX__].nouveau" value="false">
+
+                    <div class="bloc-existant">
+                        <div class="ligne-produit">
+                            <img class="miniature d-none" alt="">
+                            <div class="champ-recherche">
+                                <svg class="ico champ-recherche__icone"><use href="#l-recherche"/></svg>
+                                <input type="hidden" name="lignes[__INDEX__].produitId" class="produit-id">
+                                <input type="text" class="form-control produit-saisie"
+                                       placeholder="Tapez le début du nom..." autocomplete="off" aria-label="Produit">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bloc-nouveau d-none">
+                        <div>
+                            <label class="mini-label">Nom du nouveau produit</label>
+                            <input type="text" maxlength="150" class="form-control nouveau-nom"
+                                   name="lignes[__INDEX__].nouveauProduit.nom"
+                                   placeholder="Ex : Sucre en poudre 1 kg" aria-label="Nom du nouveau produit">
+                        </div>
+                        <div class="nouveau-grille">
+                            <div>
+                                <label class="mini-label">Catégorie</label>
+                                <select class="form-select" name="lignes[__INDEX__].nouveauProduit.categorieId" aria-label="Catégorie">
+                                    <option value="">-- Choisir --</option>
+                                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.nom}">Catégorie</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="mini-label">Prix de vente</label>
+                                <input type="number" min="0" step="0.01" class="form-control"
+                                       name="lignes[__INDEX__].nouveauProduit.prixVente" aria-label="Prix de vente">
+                            </div>
+                            <div>
+                                <label class="mini-label">Seuil d'alerte</label>
+                                <input type="number" min="0" step="1" class="form-control" value="5"
+                                       name="lignes[__INDEX__].nouveauProduit.seuilAlerte" aria-label="Seuil d'alerte">
+                            </div>
+                        </div>
+                        <div class="form-text text-danger" th:if="${#lists.isEmpty(categories)}">
+                            Aucune catégorie : créez-en une depuis la page Produits.
+                        </div>
+                    </div>
+
+                    <div class="perem-ligne">
+                        <label class="mini-label">Péremption du lot <span>(facultative)</span></label>
+                        <input type="date" class="form-control" name="lignes[__INDEX__].datePeremption"
+                               aria-label="Date de péremption du lot">
+                    </div>
+                </td>
+                <td class="compact">
+                    <div class="stepper">
+                        <button type="button" class="stepper__btn" data-delta="-1" aria-label="Diminuer la quantité">&minus;</button>
+                        <input type="number" min="1" step="1" name="lignes[__INDEX__].quantite" value="1"
+                               class="quantite" aria-label="Quantité">
+                        <button type="button" class="stepper__btn" data-delta="1" aria-label="Augmenter la quantité">+</button>
+                    </div>
+                </td>
+                <td class="compact">
+                    <div class="input-group prix-saisie">
+                        <input type="number" min="0" step="0.01" class="form-control prix-achat"
+                               name="lignes[__INDEX__].prixAchat" aria-label="Prix d'achat">
+                        <span class="input-group-text" th:text="${devise}">FCFA</span>
+                    </div>
+                </td>
+                <td class="droite compact nombre"><span class="sous-total">0,00</span></td>
+                <td class="droite compact">
+                    <button type="button" class="btn-icone btn-icone--danger btn-retirer"
+                            title="Retirer cette ligne" aria-label="Retirer cette ligne">
+                        <svg class="ico"><use href="#l-corbeille"/></svg>
+                    </button>
+                </td>
+            </tr>
+        </template>
+    </form>
+</main>
+
+<th:block th:replace="~{fragments/scripts :: scripts}"></th:block>
+
+<script th:src="@{/js/livraison-nouvelle.js}" defer></script>
+</body>
+</html>

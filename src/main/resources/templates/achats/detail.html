@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:replace="~{components/layout :: head('Achat')}"></head>
+<head th:replace="~{fragments/head :: head('Achat')}"></head>
 <body>
 
-<nav th:replace="~{components/layout :: navbar}"></nav>
+<nav th:replace="~{fragments/menu :: menu}"></nav>
 
 <main class="contenu">
 
-    <div th:replace="~{components/layout :: messages}"></div>
+    <div th:replace="~{fragments/messages :: messages}"></div>
 
     <a th:href="@{/achats}" class="lien-retour">&larr; Retour à l'historique</a>
 
@@ -37,13 +37,13 @@
         <div class="resume">
             <span class="resume__libelle">Caissier</span>
             <span class="resume__valeur">
-                <span class="avatar-mini" th:data-initiales="${achat.utilisateur.nomComplet}">AD</span>
-                <span th:text="${achat.utilisateur.nomComplet}">Awa Diop</span>
+                <span class="avatar-mini" th:data-initiales="${achat.utilisateur.nomComplet}">SS</span>
+                <span th:text="${achat.utilisateur.nomComplet}">Savadogo Salimata</span>
             </span>
         </div>
         <div class="resume">
             <span class="resume__libelle">Client</span>
-            <span class="resume__valeur" th:text="${achat.nomClient != null} ? ${achat.nomClient} : '-'">Ousmane Sow</span>
+            <span class="resume__valeur" th:text="${achat.nomClient != null} ? ${achat.nomClient} : '-'">Ouedraogo Ali</span>
         </div>
         <div class="resume">
             <span class="resume__libelle">Articles</span>
@@ -97,7 +97,7 @@
     </section>
 </main>
 
-<th:block th:replace="~{components/layout :: scripts}"></th:block>
-<th:block th:replace="~{components/ticket-modal :: modalTicket}"></th:block>
+<th:block th:replace="~{fragments/scripts :: scripts}"></th:block>
+<th:block th:replace="~{fragments/modal-ticket :: modalTicket}"></th:block>
 </body>
 </html>

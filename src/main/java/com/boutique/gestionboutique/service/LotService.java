@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Gestion des péremptions par lot : consultation, alertes et retrait des lots périmés. */
+// Gestion des péremptions par lot : consultation, alertes et retrait des lots périmés.
 @Service
 public class LotService {
 
@@ -35,7 +35,6 @@ public class LotService {
 
     // ---------- Consultation ----------
 
-    /** Tous les lots datés encore en stock, du plus proche de la péremption au plus lointain. */
     @Transactional(readOnly = true)
     public List<LotDTO> lotsAvecPeremption() {
         LocalDate aujourdhui = LocalDate.now();
@@ -45,7 +44,6 @@ public class LotService {
                 .toList();
     }
 
-    /** Lots périmés ou qui périment dans les 'jours' jours (produits actifs) : alertes du tableau de bord. */
     @Transactional(readOnly = true)
     public List<LotDTO> lotsAEchoir(int jours) {
         LocalDate aujourdhui = LocalDate.now();
@@ -56,7 +54,7 @@ public class LotService {
                 .toList();
     }
 
-    /** Lots périmés encore en stock (retrait). */
+    // Lots périmés encore en stock .
     @Transactional(readOnly = true)
     public List<LotDTO> lotsPerimes() {
         LocalDate aujourdhui = LocalDate.now();
@@ -66,7 +64,7 @@ public class LotService {
                 .toList();
     }
 
-    /** Règle LOT8 : pour chaque produit, la prochaine péremption et le nombre d'unités déjà périmées. */
+    // Pour chaque produit, la prochaine péremption et le nombre d'unités déjà périmées.
     @Transactional(readOnly = true)
     public Map<Integer, InfoPeremptionDTO> infosParProduit() {
         LocalDate aujourdhui = LocalDate.now();
@@ -95,13 +93,8 @@ public class LotService {
         return infos;
     }
 
-    // ---------- Retrait des lots périmés (règle LOT6) ----------
+    // ---------- Retrait des lots périmés ----------
 
-    /**
-     * Retire du stock les unités restantes d'un lot périmé. Le produit est verrouillé AVANT de lire le lot :
-     * une vente simultanée ne peut pas modifier le lot entre-temps.
-     * Retourne le nombre d'unités retirées.
-     */
     @Transactional
     public int retirer(Integer idLivraison, Integer idProduit) {
         Produit produit = produitRepository.findAllByIdForUpdate(List.of(idProduit)).stream()

@@ -1,6 +1,6 @@
 package com.boutique.gestionboutique.controller;
 
-import com.boutique.gestionboutique.dto.CategorieDTO;
+import com.boutique.gestionboutique.form.CategorieForm;
 import com.boutique.gestionboutique.exception.RegleGestionException;
 import com.boutique.gestionboutique.service.CategorieService;
 import jakarta.validation.Valid;
@@ -24,11 +24,11 @@ public class CategorieController {
         this.categorieService = categorieService;
     }
 
-    // ---------- Liste (la création et le renommage se font dans une fenêtre) ----------
+    // ---------- Liste  ----------
 
     @GetMapping
     public String liste(Model model) {
-        model.addAttribute("categorieForm", CategorieDTO.vide());
+        model.addAttribute("categorieForm", CategorieForm.vide());
         preparerListe(model, null, false);
         return "categories/liste";
     }
@@ -36,7 +36,7 @@ public class CategorieController {
     // ---------- Création ----------
 
     @PostMapping
-    public String creer(@Valid @ModelAttribute("categorieForm") CategorieDTO form,
+    public String creer(@Valid @ModelAttribute("categorieForm") CategorieForm form,
                         BindingResult result,
                         Model model,
                         RedirectAttributes redirect) {
@@ -50,11 +50,11 @@ public class CategorieController {
         return "redirect:/categories";
     }
 
-    // ---------- Renommage ----------
+    // ---------- Modifications ----------
 
     @PostMapping("/{id}")
     public String enregistrerModification(@PathVariable Integer id,
-                                          @Valid @ModelAttribute("categorieForm") CategorieDTO form,
+                                          @Valid @ModelAttribute("categorieForm") CategorieForm form,
                                           BindingResult result,
                                           Model model,
                                           RedirectAttributes redirect) {
@@ -68,7 +68,7 @@ public class CategorieController {
         return "redirect:/categories";
     }
 
-    // ---------- Suppression (règle C3) ----------
+    // ---------- Suppression ----------
 
     @PostMapping("/{id}/supprimer")
     public String supprimer(@PathVariable Integer id, RedirectAttributes redirect) {
@@ -83,7 +83,6 @@ public class CategorieController {
 
     // ---------- Outils ----------
 
-    /** idCategorie = null pour une création ; ouvrir = true quand la fenêtre doit se rouvrir (formulaire refusé). */
     private void preparerListe(Model model, Integer idCategorie, boolean ouvrir) {
         model.addAttribute("categories", categorieService.lister());
         model.addAttribute("edition", idCategorie != null);
@@ -91,7 +90,7 @@ public class CategorieController {
         model.addAttribute("ouvrirModal", ouvrir);
     }
 
-    private void verifierSaisie(CategorieDTO form, BindingResult result, Integer idExclu) {
+    private void verifierSaisie(CategorieForm form, BindingResult result, Integer idExclu) {
         if (!result.hasFieldErrors("nom") && categorieService.nomDejaUtilise(form.nom(), idExclu)) {
             result.rejectValue("nom", "unique", "Une catégorie porte déjà ce nom.");
         }

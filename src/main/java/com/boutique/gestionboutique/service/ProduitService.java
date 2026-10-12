@@ -1,6 +1,6 @@
 package com.boutique.gestionboutique.service;
 
-import com.boutique.gestionboutique.dto.ProduitDTO;
+import com.boutique.gestionboutique.form.ProduitForm;
 import com.boutique.gestionboutique.exception.RessourceIntrouvableException;
 import com.boutique.gestionboutique.model.Categorie;
 import com.boutique.gestionboutique.model.Produit;
@@ -30,10 +30,6 @@ public class ProduitService {
 
     // ---------- Consultation ----------
 
-    /**
-     * Liste ou recherche par nom (partielle, insensible à la casse).
-     * Le caissier ne voit que les produits actifs ; l'admin voit aussi les désactivés.
-     */
     @Transactional(readOnly = true)
     public List<Produit> rechercher(String q, boolean inclureDesactives) {
         String terme = (q == null) ? "" : q.trim();
@@ -53,23 +49,6 @@ public class ProduitService {
                 .orElseThrow(() -> new RessourceIntrouvableException("Produit introuvable : " + id));
     }
 
-    /** Pré-remplit le formulaire de modification (construit dans la transaction : la catégorie est chargée à la demande). */
-    @Transactional(readOnly = true)
-    public ProduitDTO formulairePour(Integer id) {
-        Produit p = trouver(id);
-        return new ProduitDTO(
-                p.getNom(),
-                p.getPrixVente(),
-                p.getSeuilAlerte(),
-                p.getCategorie().getId());
-    }
-
-    @Transactional(readOnly = true)
-    public int stockActuel(Integer id) {
-        return trouver(id).getQuantiteStock();
-    }
-
-    /** idExclu = id du produit modifié (null à la création). */
     @Transactional(readOnly = true)
     public boolean nomDejaUtilise(String nom, Integer idExclu) {
         String valeur = nom.trim();
@@ -80,14 +59,8 @@ public class ProduitService {
 
     // ---------- Écriture ----------
 
-    /** image = fichier envoyé (peut être null ou vide : le produit utilisera alors l'image par défaut). */
-    /**
-     * Crée un produit depuis une ligne de livraison (solution B). Règle P6 : le stock démarre à 0 ;
-     * c'est la livraison qui l'augmente. Pas d'image à la création (elle s'ajoute depuis la page Produits).
-     * S'exécute dans la transaction de la livraison : si la livraison échoue, le produit n'est pas créé.
-     */
     @Transactional
-    public Produit creerPourLivraison(ProduitDTO form) {
+    public Produit creerPourLivraison(ProduitForm form) {
         Produit p = new Produit();
         p.setNom(form.nom().trim());
         p.setPrixVente(form.prixVente());
@@ -97,12 +70,9 @@ public class ProduitService {
         p.setActif(true);
         return produitRepository.save(p);
     }
-    /**
-     * Règle P6 : le stock n'est JAMAIS modifié ici (il varie par les livraisons et les achats).
-     * Image : un nouveau fichier remplace l'ancien ; supprimerImage = true revient à l'image par défaut.
-     */
+
     @Transactional
-    public Produit modifier(Integer id, ProduitDTO form, MultipartFile image, boolean supprimerImage) {
+    public Produit modifier(Integer id, ProduitForm form, MultipartFile image, boolean supprimerImage) {
         Produit p = trouver(id);
         p.setNom(form.nom().trim());
         p.setPrixVente(form.prixVente());
@@ -125,12 +95,11 @@ public class ProduitService {
             throw e;
         }
         if (!Objects.equals(ancienneImage, enregistre.getImage())) {
-            stockageImageService.supprimer(ancienneImage); // l'ancien fichier n'est plus utilisé
+            stockageImageService.supprimer(ancienneImage); // l'ancienne image n'est plus utilisée
         }
         return enregistre;
     }
 
-    /** Règle P7 : on désactive, on ne supprime jamais. */
     @Transactional
     public void changerStatut(Integer id, boolean actif) {
         trouver(id).setActif(actif);

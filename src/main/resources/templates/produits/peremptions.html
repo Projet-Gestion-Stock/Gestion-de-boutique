@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:replace="~{components/layout :: head('Péremptions')}"></head>
+<head th:replace="~{fragments/head :: head('Péremptions')}"></head>
 <body>
 
-<nav th:replace="~{components/layout :: navbar}"></nav>
+<nav th:replace="~{fragments/menu :: menu}"></nav>
 
 <main class="contenu">
 
@@ -25,7 +25,7 @@
         </div>
     </div>
 
-    <div th:replace="~{components/layout :: messages}"></div>
+    <div th:replace="~{fragments/messages :: messages}"></div>
 
     <section class="panneau">
         <p class="text-secondary px-3 pt-3 mb-0">
@@ -89,6 +89,6 @@
     </section>
 </main>
 
-<th:block th:replace="~{components/layout :: scripts}"></th:block>
+<th:block th:replace="~{fragments/scripts :: scripts}"></th:block>
 </body>
 </html>

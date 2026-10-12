@@ -2,7 +2,7 @@ package com.boutique.gestionboutique.dto;
 
 import java.time.LocalDate;
 
-/** Un lot encore en stock et daté (alertes de péremption, page de gestion des péremptions). */
+// Un lot encore en stock et daté
 public record LotDTO(
         Integer idLivraison,
         Integer idProduit,

@@ -1,7 +1,7 @@
 package com.boutique.gestionboutique.controller;
 
-import com.boutique.gestionboutique.Enum.Role;
-import com.boutique.gestionboutique.dto.UtilisateurDTO;
+import com.boutique.gestionboutique.model.Role;
+import com.boutique.gestionboutique.form.UtilisateurForm;
 import com.boutique.gestionboutique.exception.RegleGestionException;
 import com.boutique.gestionboutique.service.UtilisateurService;
 import jakarta.validation.Valid;
@@ -27,11 +27,11 @@ public class UtilisateurController {
         this.utilisateurService = utilisateurService;
     }
 
-    // ---------- Liste (la création se fait dans une fenêtre) ----------
+    // ---------- Liste  ----------
 
     @GetMapping
     public String liste(Model model) {
-        model.addAttribute("utilisateurForm", UtilisateurDTO.vide());
+        model.addAttribute("utilisateurForm", UtilisateurForm.vide());
         preparerListe(model, false);
         return "utilisateurs/liste";
     }
@@ -39,13 +39,13 @@ public class UtilisateurController {
     // ---------- Création ----------
 
     @PostMapping
-    public String creer(@Valid @ModelAttribute("utilisateurForm") UtilisateurDTO form,
+    public String creer(@Valid @ModelAttribute("utilisateurForm") UtilisateurForm form,
                         BindingResult result,
                         Model model,
                         RedirectAttributes redirect) {
         verifierSaisie(form, result);
         if (result.hasErrors()) {
-            preparerListe(model, true);   // la fenêtre se rouvre avec les messages d'erreur
+            preparerListe(model, true);
             return "utilisateurs/liste";
         }
         utilisateurService.creer(form);
@@ -104,8 +104,7 @@ public class UtilisateurController {
         model.addAttribute("ouvrirModal", ouvrir);
     }
 
-    /** Contrôles qui dépendent de la base ou de plusieurs champs (unicité, confirmation du mot de passe). */
-    private void verifierSaisie(UtilisateurDTO form, BindingResult result) {
+    private void verifierSaisie(UtilisateurForm form, BindingResult result) {
         if (!result.hasFieldErrors("identifiant")
                 && utilisateurService.identifiantDejaUtilise(form.identifiant())) {
             result.rejectValue("identifiant", "unique", "Cet identifiant est déjà utilisé.");

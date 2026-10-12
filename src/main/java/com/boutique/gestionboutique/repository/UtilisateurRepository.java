@@ -15,9 +15,5 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Intege
 
     boolean existsByMatricule(String matricule);
 
-    boolean existsByIdentifiantAndIdNot(String identifiant, Integer id);
-
-    boolean existsByMatriculeAndIdNot(String matricule, Integer id);
-
     List<Utilisateur> findAllByOrderByNomAscPrenomAsc();
 }

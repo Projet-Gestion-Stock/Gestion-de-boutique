@@ -11,6 +11,5 @@ public interface CategorieRepository extends JpaRepository<Categorie, Integer> {
 
     boolean existsByNomIgnoreCase(String nom);
 
-    /** Pour le renommage : on ignore la catégorie modifiée. */
     boolean existsByNomIgnoreCaseAndIdNot(String nom, Integer id);
 }

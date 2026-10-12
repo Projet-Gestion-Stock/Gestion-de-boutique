@@ -1,19 +1,19 @@
 package com.boutique.gestionboutique.controller;
 
-import com.boutique.gestionboutique.dto.AchatDTO;
+import com.boutique.gestionboutique.form.AchatForm;
 import com.boutique.gestionboutique.exception.RegleGestionException;
 import com.boutique.gestionboutique.model.Achat;
 import com.boutique.gestionboutique.service.AchatService;
 import com.boutique.gestionboutique.service.ExportPdfService;
 import com.boutique.gestionboutique.service.ProduitService;
-import com.boutique.gestionboutique.util.ReponsePdf;
+import com.boutique.gestionboutique.util.TelechargementPdf;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestParam;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import com.boutique.gestionboutique.util.Filtres;
+import com.boutique.gestionboutique.util.FiltresUrl;
 import org.springframework.data.domain.Page;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
@@ -72,7 +72,6 @@ public class AchatController {
         Page<Achat> resultat = Page.empty();
         BigDecimal total = BigDecimal.ZERO;
         if (du != null && au != null && du.isAfter(au)) {
-            // Règle FI3
             model.addAttribute("erreurFiltre",
                     "La date de fin doit être postérieure ou égale à la date de début.");
         } else {
@@ -83,24 +82,24 @@ public class AchatController {
         LocalDate aujourdhui = LocalDate.now();
         model.addAttribute("achats", resultat.getContent());
         model.addAttribute("pagination", resultat);
-        model.addAttribute("filtresUrl", Filtres.enUrl(du, au, "caissierId", caissierId));
+        model.addAttribute("filtresUrl", FiltresUrl.enUrl(du, au, "caissierId", caissierId));
         model.addAttribute("totalAffiche", total);
         model.addAttribute("caissiers", achatService.listerUtilisateurs());
 
-        // Valeurs du filtre, pour réafficher le formulaire tel qu'il a été rempli
+        // Valeurs du filtre
         model.addAttribute("du", du);
         model.addAttribute("au", au);
         model.addAttribute("caissierId", caissierId);
         model.addAttribute("filtreActif", du != null || au != null || caissierId != null);
 
-        // Raccourcis (règle FI6)
+        // Raccourcis pour filtre
         model.addAttribute("aujourdhui", aujourdhui);
         model.addAttribute("il7Jours", aujourdhui.minusDays(6));
         model.addAttribute("debutMois", aujourdhui.withDayOfMonth(1));
         return "achats/liste";
     }
 
-    // ---------- Export PDF de l'historique (mêmes filtres que la liste, sans pagination) ----------
+    // ---------- Export PDF de l'historique en tenant compte du filtre  ----------
 
     @GetMapping("/export/pdf")
     public ResponseEntity<byte[]> exporterPdf(@RequestParam(name = "du", required = false)
@@ -116,7 +115,7 @@ public class AchatController {
         List<Achat> achats = achatService.listerPourExport(du, au, caissierId);
         byte[] pdf = exportPdfService.historiqueAchats(
                 achats, du, au, achatService.libelleCaissier(caissierId), principal.getName());
-        return ReponsePdf.telechargement(pdf, "historique-achats", apercu);
+        return TelechargementPdf.telechargement(pdf, "historique-achats", apercu);
     }
 
     // ---------- Détail ----------
@@ -129,7 +128,7 @@ public class AchatController {
 
     // ---------- Ticket de caisse ----------
 
-    /** Ticket d'un achat enregistré : généré à la demande, donc identique à chaque (ré)impression. */
+    // Ticket d'un achat enregistré : généré à la demande et identique à chaque (ré)impression.
     @GetMapping("/{id}/ticket")
     public String ticket(@PathVariable Integer id, Model model) {
         model.addAttribute("achat", achatService.trouverDetaille(id));
@@ -140,17 +139,17 @@ public class AchatController {
         return "achats/ticket";
     }
 
-    // ---------- Saisie ----------
+    // ---------- Enregistrer des achats ----------
 
     @GetMapping("/nouveau")
     public String nouveau(Model model) {
-        model.addAttribute("achatForm", AchatDTO.vide());
+        model.addAttribute("achatForm", AchatForm.vide());
         preparerFormulaire(model);
-        return "achats/formulaire";
+        return "achats/nouveau";
     }
 
     @PostMapping
-    public String enregistrer(@Valid @ModelAttribute("achatForm") AchatDTO form,
+    public String enregistrer(@Valid @ModelAttribute("achatForm") AchatForm form,
                               BindingResult result,
                               Model model,
                               Principal principal,
@@ -158,7 +157,7 @@ public class AchatController {
         verifierLignes(form, result);
         if (result.hasErrors()) {
             preparerFormulaire(model);
-            return "achats/formulaire";
+            return "achats/nouveau";
         }
         try {
             Achat achat = achatService.enregistrer(form, principal.getName());
@@ -166,26 +165,25 @@ public class AchatController {
                     "Achat n° " + achat.getId() + " enregistré : le stock a été mis à jour.");
             return "redirect:/achats/" + achat.getId();
         } catch (RegleGestionException e) {
-            // Le service renvoie un problème par ligne (stock insuffisant, produit indisponible...)
             for (String message : e.getMessage().split("\n")) {
                 result.reject("regle.gestion", message);
             }
             preparerFormulaire(model);
-            return "achats/formulaire";
+            return "achats/nouveau";
         }
     }
 
     // ---------- Outils ----------
 
-    /** Règle AC4 : seuls les produits actifs sont proposés (ceux en rupture sont affichés mais non sélectionnables). */
+    // seuls les produits actifs sont proposés et ceux en rupture sont affichés mais non sélectionnables.
     private void preparerFormulaire(Model model) {
         model.addAttribute("produits", produitService.rechercher(null, false));
         model.addAttribute("devise", boutiqueDevise);
     }
 
-    private void verifierLignes(AchatDTO form, BindingResult result) {
+    private void verifierLignes(AchatForm form, BindingResult result) {
         if (form.lignes() == null) {
-            return; // déjà signalé par @NotEmpty
+            return;
         }
         if (form.lignes().stream().anyMatch(ligne -> ligne == null)) {
             result.reject("ligne.invalide", "Une ligne de l'achat est invalide.");
