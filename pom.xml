@@ -109,6 +109,7 @@
 	</dependencies>
 
 	<build>
+		<finalName>gestion-boutique</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
