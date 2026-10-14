@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org">
-<head th:fragment="head(titre)">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title th:text="${titre} + ' - Gestion de boutique'">Gestion de boutique</title>
-    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.3/css/bootstrap.min.css}">
-    <link rel="stylesheet" th:href="@{/css/app.css}">
-</head>
+    <head th:fragment="head(titre)">
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title th:text="${titre} + ' - Gestion de boutique'">Gestion de boutique</title>
+        <link rel="icon" href="/favicon.ico" sizes="any">
+        <link rel="icon" type="image/png" th:href="@{/images/logo.png}">
+        <link rel="apple-touch-icon" th:href="@{/images/apple-touch-icon.png}">
+        <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.3/css/bootstrap.min.css}">
+        <link rel="stylesheet" th:href="@{/css/app.css}">
+    </head>
 </html>

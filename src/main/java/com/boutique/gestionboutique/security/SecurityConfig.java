@@ -29,7 +29,7 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         // Ressources publiques
-                        .requestMatchers("/login", "/error", "/webjars/**", "/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/login", "/error", "/webjars/**", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
 
                         // Utilisateurs : administrateur uniquement
                         .requestMatchers("/utilisateurs/**").hasRole("ADMIN")
@@ -42,8 +42,6 @@ public class SecurityConfig {
                         .requestMatchers("/produits/**").hasRole("ADMIN")
 
                         .requestMatchers(HttpMethod.GET, "/produits").hasAnyRole("ADMIN", "CAISSIER")
-
-                        .requestMatchers("/produits/**").hasRole("ADMIN")
 
                         .requestMatchers("/categories/**").hasRole("ADMIN")
 

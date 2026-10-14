@@ -37,7 +37,7 @@ import java.util.Map;
 @RequestMapping("/livraisons")
 public class LivraisonController {
 
-    private static final int TAILLE_PAGE = 15;
+    private static final int TAILLE_PAGE = 10;
 
     private final LivraisonService livraisonService;
     private final GrossisteService grossisteService;

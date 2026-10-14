@@ -56,7 +56,7 @@ public class AchatController {
         this.exportPdfService = exportPdfService;
     }
 
-    private static final int TAILLE_PAGE = 15;
+    private static final int TAILLE_PAGE = 10;
 
     // ---------- Historique ----------
 

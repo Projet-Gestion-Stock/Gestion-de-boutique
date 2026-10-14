@@ -5,7 +5,7 @@ server.port=8081
 # --- Base de donn�es PostgreSQL ---
 spring.datasource.url=jdbc:postgresql://localhost:5432/boutique_db
 spring.datasource.username=boutique_user
-spring.datasource.password=VOTRE_MOT_DE_PASSE_POSTGRESQL
+spring.datasource.password=${DB_PASSWORD:boutique_pwd}
 
 # --- JPA : Hibernate ---
 spring.jpa.hibernate.ddl-auto=validate
